@@ -97,7 +97,6 @@ public class LoginScreen extends JFrame {
 
 		});
 		
-
 		return p;
 	}
 
