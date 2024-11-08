@@ -101,52 +101,6 @@ public class LoginScreen extends JFrame {
 		return p;
 	}
 
-	private JPanel createLoginPanel() {
-		JPanel p = new JPanel();
-		p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-
-		JLabel id = new JLabel("아이디");
-		id.setAlignmentX(Component.CENTER_ALIGNMENT);
-		t_id = new JTextField(15);
-		t_id.setMaximumSize(new Dimension(150, 30));
-
-		JLabel pw = new JLabel("비밀번호");
-		pw.setAlignmentX(Component.CENTER_ALIGNMENT);
-		t_pw = new JTextField(15);
-		t_pw.setMaximumSize(new Dimension(150, 30));
-
-		p.add(id);
-		p.add(Box.createVerticalStrut(5));
-		p.add(t_id);
-		p.add(Box.createVerticalStrut(15));
-
-		p.add(pw);
-		p.add(Box.createVerticalStrut(5));
-		p.add(t_pw);
-		p.add(Box.createVerticalStrut(20));
-
-		b_login = new JButton("로그인");
-		b_login.setAlignmentX(Component.CENTER_ALIGNMENT);
-		b_login.setPreferredSize(new Dimension(100, 30));
-		p.add(b_login);
-
-		b_login.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				String clientId = t_id.getText().trim();
-				String password = t_pw.getText();
-
-				if (clientId.isEmpty() || password.isEmpty()) {
-					JOptionPane.showMessageDialog(null, "아이디와 비밀번호를 입력하세요.", "경고", JOptionPane.WARNING_MESSAGE);
-				}
-
-			}
-
-		});
-
-		return p;
-	}
 
 	public static void main(String[] args) {
 		new LoginScreen();
