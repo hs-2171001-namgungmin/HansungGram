@@ -76,7 +76,7 @@ public class MainScreen extends JFrame {
 
         homeButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "홈으로 이동합니다."));
         postButton.addActionListener(e -> new PostUploadScreen(this));
-        chatButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "채팅 기능 준비 중입니다."));
+        chatButton.addActionListener(e -> new ChatlistScreen(this, userId));
 
         panel.add(chatButton);
         panel.add(homeButton);
