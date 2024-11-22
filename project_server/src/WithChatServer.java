@@ -1,5 +1,3 @@
-//2191181 최하정
-
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -33,7 +31,7 @@ public class WithChatServer extends JFrame{
 	private JButton b_connect, b_disconnect, b_exit;
 
 	public WithChatServer(int Port) {
-		super("2191181 / With ChatServer");
+		super("With ChatServer");
 
 		buildGUI();
 

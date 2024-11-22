@@ -7,10 +7,12 @@ public class MainScreen extends JFrame {
     private JPanel postPanel;
     private String userId;
     private Color userColor;
+    private LoginScreen loginScreen;
 
-    public MainScreen(String userId) {
+    public MainScreen(LoginScreen loginScreen, String userId) {
         this.userId = userId;
         this.userColor = getRandomColor();
+        this.loginScreen = loginScreen;
         setTitle("Hansunggram - 메인 화면");
         setSize(400, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -76,7 +78,7 @@ public class MainScreen extends JFrame {
 
         homeButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "홈으로 이동합니다."));
         postButton.addActionListener(e -> new PostUploadScreen(this));
-        chatButton.addActionListener(e -> new ChatlistScreen(this, userId));
+        chatButton.addActionListener(e -> new ChatlistScreen(this, loginScreen, userId));
 
         panel.add(chatButton);
         panel.add(homeButton);

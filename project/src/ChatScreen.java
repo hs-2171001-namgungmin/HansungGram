@@ -220,7 +220,7 @@ public class ChatScreen extends JFrame {
 		
 		if(icon.getIconWidth() > 400) {
 			Image img = icon.getImage();
-			Image changeImg = img.getScaledInstance(400,-1, Image.SCALE_SMOOTH);
+			Image changeImg = img.getScaledInstance(300,-1, Image.SCALE_SMOOTH);
 			icon = new ImageIcon(changeImg);
 		}
 		

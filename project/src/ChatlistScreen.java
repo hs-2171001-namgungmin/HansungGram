@@ -1,11 +1,13 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -14,9 +16,10 @@ public class ChatlistScreen extends JFrame{
 	private JButton undo;
 	private JButton plus;
 	private MainScreen mainScreen;
+	private LoginScreen loginScreen;
 	private String userId;
 	
-	public ChatlistScreen(MainScreen mainScreen, String userId) {
+	public ChatlistScreen(MainScreen mainScreen, LoginScreen loginScreen, String userId) {
 		this.mainScreen = mainScreen;
 		this.userId = userId;
 		setTitle("ChatlistScreen");
@@ -52,7 +55,7 @@ public class ChatlistScreen extends JFrame{
 			}
 		});
 		
-		JLabel user_name = new JLabel(userId); //임시(실제로는 id창에서 받은 이름(t_id)으로 사용)
+		JLabel user_name = new JLabel(userId); 
 
 		p1.add(undo);
 		p1.add(user_name);
@@ -70,8 +73,12 @@ public class ChatlistScreen extends JFrame{
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				JDialog dialog = new JDialog((Frame) null, "Select Chat", true);
 				
 				
+				
+				dialog.setSize(250, 250);
+		        dialog.setVisible(true);				
 			}
 		});
 		
