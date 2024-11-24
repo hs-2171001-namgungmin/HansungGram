@@ -134,7 +134,9 @@ public class PostUploadScreen extends JFrame {
             selectedImage = new ImageIcon(scaledImage);
             imageLabel.setIcon(selectedImage);
 
+            // 게시물 업로드 버튼 활성화 및 색상 변경
             uploadButton.setEnabled(true);
+            uploadButton.setBackground(Color.BLUE); // 버튼 색상을 파란색으로 변경
         }
     }
     private JButton createNavButton(String text, ActionListener action) {
