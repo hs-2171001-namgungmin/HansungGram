@@ -1,17 +1,26 @@
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import java.io.File;
-import javax.swing.*;
+import java.io.*;
+import java.net.Socket;
 
 public class PostUploadScreen extends JFrame {
     private JLabel imageLabel;
     private JTextField contentField;
-    private JButton uploadButton;
+    private JButton uploadButton, selectImageButton;
     private ImageIcon selectedImage;
     private MainScreen mainScreen;
+    private Socket socket;
+    private ObjectOutputStream out;
+    private String userId;
 
-    public PostUploadScreen(MainScreen mainScreen) {
+    public PostUploadScreen(MainScreen mainScreen, String userId, Socket socket, ObjectOutputStream out) {
         this.mainScreen = mainScreen;
+        this.userId = userId;
+        this.socket = socket;
+        this.out = out;
+
         setTitle("Hansunggram - 게시물 업로드");
         setSize(400, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -19,7 +28,6 @@ public class PostUploadScreen extends JFrame {
         getContentPane().setBackground(Color.WHITE);
 
         buildGUI();
-
         setVisible(true);
     }
 
@@ -34,7 +42,7 @@ public class PostUploadScreen extends JFrame {
         panel.setBackground(Color.WHITE);
         JLabel title = new JLabel("Hansunggram");
         title.setFont(new Font("SansSerif", Font.BOLD, 20));
-        JLabel logo = new JLabel(new ImageIcon("instagram.png")); // 로고 추가
+        JLabel logo = new JLabel(new ImageIcon("instagram.png"));
         panel.add(logo);
         panel.add(title);
         return panel;
@@ -44,11 +52,10 @@ public class PostUploadScreen extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
 
-        // 이미지 미리보기 크기 확대
         imageLabel = new JLabel("", SwingConstants.CENTER);
         imageLabel.setOpaque(true);
         imageLabel.setBackground(Color.LIGHT_GRAY);
-        imageLabel.setPreferredSize(new Dimension(300, 300)); // 크기 확대
+        imageLabel.setPreferredSize(new Dimension(300, 300));
         panel.add(imageLabel, BorderLayout.CENTER);
 
         return panel;
@@ -58,38 +65,23 @@ public class PostUploadScreen extends JFrame {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         bottomPanel.setBackground(Color.WHITE);
 
-        // 텍스트 필드 줄이기
         contentField = new JTextField();
         contentField.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        contentField.setPreferredSize(new Dimension(400, 30)); // 높이 줄임
-        contentField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1),
-                BorderFactory.createEmptyBorder(5, 5, 5, 5)
-        ));
         bottomPanel.add(contentField, BorderLayout.NORTH);
 
-        // 버튼 영역
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         buttonPanel.setBackground(Color.WHITE);
 
-        JButton imageUploadButton = new JButton("사진 업로드");
-        styleButton(imageUploadButton, Color.BLUE);
-        imageUploadButton.addActionListener(e -> uploadImage());
+        selectImageButton = new JButton("사진 선택");
+        styleButton(selectImageButton, Color.BLUE);
+        selectImageButton.addActionListener(e -> selectImage());       
 
         uploadButton = new JButton("게시물 업로드");
         styleButton(uploadButton, Color.GRAY);
         uploadButton.setEnabled(false);
-        uploadButton.addActionListener(e -> {
-            if (selectedImage != null && !contentField.getText().isEmpty()) {
-                mainScreen.addPost(contentField.getText(), selectedImage);
-                JOptionPane.showMessageDialog(this, "게시물이 업로드되었습니다!");
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "사진과 내용을 모두 입력하세요!");
-            }
-        });
+        uploadButton.addActionListener(e -> uploadPost());
 
-        buttonPanel.add(imageUploadButton);
+        buttonPanel.add(selectImageButton);
         buttonPanel.add(uploadButton);
 
         // 하단 네비게이션 바
@@ -115,46 +107,36 @@ public class PostUploadScreen extends JFrame {
         return bottomPanel;
     }
 
-    private void uploadImage() {
+    private void selectImage() {
         JFileChooser fileChooser = new JFileChooser();
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("JPG, PNG, GIF 이미지 파일", "jpg", "png", "gif");
+        fileChooser.setFileFilter(filter);
         int result = fileChooser.showOpenDialog(this);
 
         if (result == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
-
             if (file == null || !file.exists()) {
                 JOptionPane.showMessageDialog(this, "유효한 파일을 선택하세요.", "파일 오류", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+            // 이미지 파일을 ImageIcon으로 로드
+            ImageIcon originalIcon = new ImageIcon(file.getAbsolutePath());
+            Image originalImage = originalIcon.getImage();
 
-            // 이미지 로드
-            selectedImage = new ImageIcon(file.getAbsolutePath());
+            // JLabel의 크기에 맞게 이미지 크기 조정
+            int labelWidth = imageLabel.getWidth();
+            int labelHeight = imageLabel.getHeight();
 
-            // 이미지 크기 확인
-            int imgWidth = selectedImage.getIconWidth();
-            int imgHeight = selectedImage.getIconHeight();
+            // 이미지 크기 조정
+            Image scaledImage = originalImage.getScaledInstance(labelWidth, labelHeight, Image.SCALE_SMOOTH);
 
-            if (imgWidth <= 0 || imgHeight <= 0) {
-                JOptionPane.showMessageDialog(this, "이미지 로드에 실패했습니다. 올바른 파일인지 확인하세요.", "이미지 오류", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            // 조정된 이미지를 ImageIcon으로 설정
+            selectedImage = new ImageIcon(scaledImage);
+            imageLabel.setIcon(selectedImage);
 
-            // 기본 크기로 스케일링
-            int width = 300;
-            int height = 300; // 이미지 크기 확대
-            Image scaledImage = selectedImage.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
-
-            // 스케일링된 이미지 설정
-            imageLabel.setIcon(new ImageIcon(scaledImage));
-            imageLabel.revalidate();
-            imageLabel.repaint();
-
-            // 업로드 버튼 활성화
             uploadButton.setEnabled(true);
-            uploadButton.setBackground(Color.BLUE);
         }
     }
-
     private JButton createNavButton(String text, ActionListener action) {
         JButton button = new JButton(text);
         button.setFont(new Font("SansSerif", Font.BOLD, 18));
@@ -176,4 +158,35 @@ public class PostUploadScreen extends JFrame {
         button.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
         button.setPreferredSize(new Dimension(120, 40));
     }
+
+    private void send(ChatMsg msg) {
+        try {
+            out.writeObject(msg);
+            out.flush();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "서버 전송 오류: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+
+    private void uploadPost() {
+        String content = contentField.getText().trim();
+        if (content.isEmpty() || selectedImage == null) {
+            JOptionPane.showMessageDialog(this, "내용과 이미지를 모두 입력하세요.", "경고", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            // 게시물 객체 생성 후 서버로 전송
+            ChatMsg postMsg = new ChatMsg(userId, ChatMsg.MODE_TX_POST, content, selectedImage);
+            out.writeObject(postMsg); // 객체 전송
+            out.flush(); // 스트림 플러시
+
+            JOptionPane.showMessageDialog(this, "게시물이 성공적으로 업로드되었습니다!");
+            dispose();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "업로드 중 오류 발생: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
 }
