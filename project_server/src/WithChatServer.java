@@ -199,49 +199,54 @@ public class WithChatServer extends JFrame{
 		}
 
 		private void receiveMessages(Socket cs) {
-			try {
-				ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(cs.getInputStream()));
-				out = new ObjectOutputStream(new BufferedOutputStream(cs.getOutputStream()));
+		    try {
+		        ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(cs.getInputStream()));
+		        out = new ObjectOutputStream(new BufferedOutputStream(cs.getOutputStream()));
 
-				ChatMsg msg;
-				while ((msg = (ChatMsg) in.readObject()) != null) {
-					if (msg.mode == ChatMsg.MODE_LOGIN) {
-						uid = msg.userID;
+		        ChatMsg msg;
+		        while ((msg = (ChatMsg) in.readObject()) != null) {
+		            if (msg.mode == ChatMsg.MODE_LOGIN) {
+		                uid = msg.userID;
 
-						printDisplay("새 참가자: " + uid);
-						printDisplay("현재 참가자 수: " + users.size());
-						continue;
-					} else if (msg.mode == ChatMsg.MODE_LOGOUT) {
-						break;
-					} else if (msg.mode == ChatMsg.MODE_TX_STRING) {
-						//message = uid + ": " + msg.message;
-						String message = uid + ": " + msg.message;
-						
-						printDisplay(message);
-						broadcasting(msg);
-					} else if(msg.mode == ChatMsg.MODE_TX_IMAGE) {
-						printDisplay(uid + ": " + msg.message);
-						broadcasting(msg);
-					}
-				}
+		                printDisplay("새 참가자: " + uid);
+		                printDisplay("현재 참가자 수: " + users.size());
+		                continue;
+		            } else if (msg.mode == ChatMsg.MODE_LOGOUT) {
+		                break;
+		            } else if (msg.mode == ChatMsg.MODE_TX_STRING) {
+		                // 일반 텍스트 메시지 처리
+		                String message = uid + ": " + msg.message;
+		                printDisplay(message);
+		                broadcasting(msg);
+		            } else if (msg.mode == ChatMsg.MODE_TX_IMAGE) {
+		                // 이미지 메시지 처리
+		                printDisplay(uid + ": " + msg.message);
+		                broadcasting(msg);
+		            } else if (msg.mode == ChatMsg.MODE_TX_POST) {
+		                // 게시물 메시지 처리
+		                printDisplay(uid + " 게시물 업로드: " + msg.message);
+		                broadcasting(msg);
+		            }
+		        }
 
-				users.removeElement(this);
-				printDisplay(uid + " 퇴장. 현재 참가자 수: " + users.size());
+		        users.removeElement(this);
+		        printDisplay(uid + " 퇴장. 현재 참가자 수: " + users.size());
 
-			} catch (IOException e) {
-				users.removeElement(this);
-				printDisplay(uid + " 연결 끊김. 현재 참가자 수: " + users.size());
-			} catch (ClassNotFoundException e) {
-				e.printStackTrace();
-			} finally {
-				try {
-					cs.close();
-				} catch (IOException e) {
-					System.err.println("서버 닫기 오류> " + e.getMessage());
-					System.exit(-1);
-				}
-			}
+		    } catch (IOException e) {
+		        users.removeElement(this);
+		        printDisplay(uid + " 연결 끊김. 현재 참가자 수: " + users.size());
+		    } catch (ClassNotFoundException e) {
+		        e.printStackTrace();
+		    } finally {
+		        try {
+		            cs.close();
+		        } catch (IOException e) {
+		            System.err.println("서버 닫기 오류> " + e.getMessage());
+		            System.exit(-1);
+		        }
+		    }
 		}
+
 
 		private void send(ChatMsg msg) {
 			try {
