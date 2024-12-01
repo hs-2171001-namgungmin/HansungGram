@@ -5,6 +5,15 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.Random;
+import java.awt.event.ActionListener;
+
+import javax.swing.*;
+import java.awt.*;
+import java.io.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.util.Random;
 
 public class MainScreen extends JFrame {
     private JPanel postPanel;
@@ -33,6 +42,7 @@ public class MainScreen extends JFrame {
         }
 
         buildGUI();
+        requestPosts(); // 초기 실행 시 게시물 요청
         setVisible(true);
     }
 
@@ -44,52 +54,19 @@ public class MainScreen extends JFrame {
         out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
 
         // 수신 스레드 초기화
-        receiveThread = new Thread(new Runnable() {
-            private ObjectInputStream in;
-
-            private void receiveMessage() {
-                try {
-                    ChatMsg inMsg = (ChatMsg) in.readObject();
-                    if (inMsg == null) {
-                        disconnect();
-                        System.out.println("서버 연결 끊김");
-                        return;
-                    }
-                    switch (inMsg.mode) {
-                        case ChatMsg.MODE_TX_STRING:
-                            System.out.println(inMsg.userID + ": " + inMsg.message);
-                            break;
-
-                        case ChatMsg.MODE_TX_IMAGE:
-                            System.out.println(inMsg.userID + ": " + inMsg.message);
-                            // 이미지 처리 로직 추가 가능
-                            break;
-
-                        case ChatMsg.MODE_TX_POST:
-                            addPost(inMsg.message, inMsg.image, inMsg.userID); // 게시물 추가
-                            break;
-                    }
-                } catch (IOException e) {
-                    System.err.println("클라이언트 수신 오류: " + e.getMessage());
-                } catch (ClassNotFoundException e) {
-                    System.out.println("잘못된 객체가 전달되었습니다.");
-                }
-            }
-
-            @Override
-            public void run() {
-                try {
-                    in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
-                } catch (IOException e) {
-                    System.err.println("입력 스트림이 열리지 않음: " + e.getMessage());
-                }
+        receiveThread = new Thread(() -> {
+            try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()))) {
                 while (!Thread.currentThread().isInterrupted()) {
-                    receiveMessage();
+                    ChatMsg inMsg = (ChatMsg) in.readObject();
+                    if (inMsg != null) {
+                        processIncomingMessage(inMsg);
+                    }
                 }
+            } catch (IOException | ClassNotFoundException e) {
+                System.err.println("메시지 수신 중 오류 발생: " + e.getMessage());
             }
         });
         receiveThread.start();
-
     }
 
     private void sendUserID() throws IOException {
@@ -127,38 +104,51 @@ public class MainScreen extends JFrame {
 
     private JPanel createBottomPanel() {
         JPanel panel = new JPanel(new GridLayout(1, 3));
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // 하단 패널 높이 증가
-        panel.setBackground(new Color(230, 230, 230)); // 연한 회색 배경 설정
+        panel.setBackground(new Color(230, 230, 230));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JButton chatButton = new JButton("✈");
-        JButton homeButton = new JButton("🏠");
-        JButton postButton = new JButton("➕");
-
-        Font buttonFont = new Font("SansSerif", Font.BOLD, 18);
-        chatButton.setFont(buttonFont);
-        homeButton.setFont(buttonFont);
-        postButton.setFont(buttonFont);
-
-        chatButton.setFocusPainted(false);
-        homeButton.setFocusPainted(false);
-        postButton.setFocusPainted(false);
-
-        chatButton.setBackground(new Color(230, 230, 230));
-        homeButton.setBackground(new Color(230, 230, 230));
-        postButton.setBackground(new Color(230, 230, 230));
-        chatButton.setBorder(BorderFactory.createEmptyBorder());
-        homeButton.setBorder(BorderFactory.createEmptyBorder());
-        postButton.setBorder(BorderFactory.createEmptyBorder());
-
-        homeButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "홈으로 이동합니다."));
-        postButton.addActionListener(e -> new PostUploadScreen(this, userId, socket, out));
-        chatButton.addActionListener(e -> new ChatlistScreen(this, null, userId));
+        JButton chatButton = createNavButton("✈", e -> JOptionPane.showMessageDialog(this, "채팅 기능 준비 중입니다."));
+        JButton homeButton = createNavButton("🏠", e -> JOptionPane.showMessageDialog(this, "홈 화면입니다."));
+        JButton postButton = createNavButton("➕", e -> new PostUploadScreen(this, userId, socket, out));
 
         panel.add(chatButton);
         panel.add(homeButton);
         panel.add(postButton);
-
         return panel;
+    }
+
+    private JButton createNavButton(String text, ActionListener action) {
+        JButton button = new JButton(text);
+        button.setFont(new Font("SansSerif", Font.BOLD, 18));
+        button.setFocusPainted(false);
+        button.setBackground(new Color(230, 230, 230));
+        button.setBorder(BorderFactory.createEmptyBorder());
+        if (action != null) {
+            button.addActionListener(action);
+        }
+        return button;
+    }
+
+    private void requestPosts() {
+        try {
+            ChatMsg requestMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_POSTS);
+            out.writeObject(requestMsg);
+            out.flush();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "게시물 요청 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void processIncomingMessage(ChatMsg inMsg) {
+        switch (inMsg.mode) {
+            case ChatMsg.MODE_REQUEST_POSTS: // 서버로부터 게시물 리스트 수신
+            case ChatMsg.MODE_TX_POST:      // 새로운 게시물 수신
+                addPost(inMsg.message, inMsg.image, inMsg.userID);
+                break;
+
+            default:
+                System.err.println("알 수 없는 메시지 모드: " + inMsg.mode);
+        }
     }
 
     public void addPost(String content, ImageIcon image, String userId) {
@@ -170,7 +160,6 @@ public class MainScreen extends JFrame {
         JPanel userInfoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         userInfoPanel.setBackground(Color.WHITE);
 
-        // 프로필 원형 라벨
         JLabel profilePic = new JLabel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -189,38 +178,24 @@ public class MainScreen extends JFrame {
         userInfoPanel.add(profilePic);
         userInfoPanel.add(userLabel);
 
-        // 이미지 및 내용
+        // 게시물 내용 및 이미지
         JLabel imageLabel = new JLabel(image);
         JLabel contentLabel = new JLabel(content);
         contentLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
 
-        // 게시물 구성
         post.add(userInfoPanel, BorderLayout.NORTH);
         post.add(imageLabel, BorderLayout.CENTER);
         post.add(contentLabel, BorderLayout.SOUTH);
 
-        postPanel.add(post, 0);
-        postPanel.revalidate();
-        postPanel.repaint();
+        // **맨 위에 게시물 추가**
+        postPanel.add(post, 0); // index 0에 추가하여 최신 게시물이 맨 위에 표시됨
+        postPanel.revalidate(); // 레이아웃 갱신
+        postPanel.repaint();    // 화면 다시 그리기
     }
+
 
     private Color getRandomColor(String userId) {
-        Random rand = new Random(userId.hashCode()); // 사용자 ID 기반으로 랜덤 생성
+        Random rand = new Random(userId.hashCode());
         return new Color(rand.nextInt(256), rand.nextInt(256), rand.nextInt(256));
     }
-
-    private void disconnect() {
-        try {
-            if (socket != null && !socket.isClosed()) {
-                socket.close();
-            }
-            if (receiveThread != null && receiveThread.isAlive()) {
-                receiveThread.interrupt();
-            }
-            System.out.println("연결이 성공적으로 종료되었습니다.");
-        } catch (IOException e) {
-            System.err.println("연결 해제 오류: " + e.getMessage());
-        }
-    }
-
 }
