@@ -81,6 +81,7 @@ public class ChatlistScreen extends JFrame {
                     // 서버 응답 대기 (MainScreen의 수신 스레드에서 userListStr이 업데이트될 때까지 잠시 대기)
                     Thread.sleep(500); // 잠시 대기하여 수신 스레드가 서버 응답을 처리할 시간을 확보
 
+                    
                     // 유저 목록 수신 후 다이얼로그 생성
                     String userListStr = mainScreen.getUserList();
                     if (userListStr == null || userListStr.isEmpty()) {
