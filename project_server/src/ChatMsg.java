@@ -9,7 +9,8 @@ public class ChatMsg implements Serializable {
     public final static int MODE_TX_IMAGE = 0x40;
     public final static int MODE_TX_POST = 0x50; // 게시물 전송 모드 추가
     public final static int MODE_REQUEST_POSTS = 0x60; // 게시물 요청
-
+    public final static int MODE_TX_USER_LIST = 0x70; // 유저 목록 전송
+    
     String userID;
     int mode;
     String message;

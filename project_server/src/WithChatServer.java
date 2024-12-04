@@ -195,6 +195,8 @@ public class WithChatServer extends JFrame {
                         broadcasting(msg);
                     } else if (msg.mode == ChatMsg.MODE_REQUEST_POSTS) {
                         sendPostsToClient(out);
+                    }else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
+                        sendUserList(); // 현재 유저 목록 반환
                     }
                 }
 
@@ -205,7 +207,23 @@ public class WithChatServer extends JFrame {
                 printDisplay(uid + " 연결 끊김. 현재 참가자 수: " + users.size());
             }
         }
-
+        private void sendUserList() {
+            Vector<String> userList = new Vector<>();
+            for (ClientHandler c : users) {
+                if (c.uid != null) {  // uid가 null이 아닌 경우에만 추가
+                    userList.add(c.uid);
+                }
+            }
+            try {
+                // 사용자 목록을 명확하게 전달하기 위해 ","로 구분된 문자열로 전송
+                String userListMessage = String.join(", ", userList);
+                ChatMsg userListMsg = new ChatMsg(uid, ChatMsg.MODE_TX_USER_LIST, userListMessage);
+                out.writeObject(userListMsg);
+                out.flush();
+            } catch (IOException e) {
+                System.err.println("유저 목록 전송 오류: " + e.getMessage());
+            }
+        }
         private void savePost(ChatMsg postMsg) {
             try {
                 File postDir = new File("saved_posts");

@@ -22,7 +22,8 @@ public class MainScreen extends JFrame {
     private Socket socket;
     private ObjectOutputStream out;
     private Thread receiveThread;
-
+    private String userListStr = ""; // 유저 목록 저장
+    
     public MainScreen(String userId, String serverAddress, int serverPort) {
         this.userId = userId;
         this.userColor = getRandomColor(userId);
@@ -68,6 +69,13 @@ public class MainScreen extends JFrame {
         });
         receiveThread.start();
     }
+    public String getUserList() {
+        return userListStr;
+    }
+
+    public ObjectOutputStream getOutputStream() {
+        return out;
+    }
 
     private void sendUserID() throws IOException {
         ChatMsg loginMsg = new ChatMsg(userId, ChatMsg.MODE_LOGIN);
@@ -107,7 +115,7 @@ public class MainScreen extends JFrame {
         panel.setBackground(new Color(230, 230, 230));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JButton chatButton = createNavButton("✈", e -> JOptionPane.showMessageDialog(this, "채팅 기능 준비 중입니다."));
+        JButton chatButton = createNavButton("✈", e -> new ChatlistScreen(this, userId));
         JButton homeButton = createNavButton("🏠", e -> JOptionPane.showMessageDialog(this, "홈 화면입니다."));
         JButton postButton = createNavButton("➕", e -> new PostUploadScreen(this, userId, socket, out));
 
@@ -145,11 +153,16 @@ public class MainScreen extends JFrame {
             case ChatMsg.MODE_TX_POST:      // 새로운 게시물 수신
                 addPost(inMsg.message, inMsg.image, inMsg.userID);
                 break;
+            case ChatMsg.MODE_TX_USER_LIST: // 유저 목록 저장
+                userListStr = inMsg.message;
+                System.out.println("현재 유저 목록: " + userListStr);
+                break;
 
             default:
                 System.err.println("알 수 없는 메시지 모드: " + inMsg.mode);
         }
     }
+    
 
     public void addPost(String content, ImageIcon image, String userId) {
         JPanel post = new JPanel(new BorderLayout());
