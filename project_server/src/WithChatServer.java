@@ -197,6 +197,10 @@ public class WithChatServer extends JFrame {
                         sendPostsToClient(out);
                     }else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
                         sendUserList(); // 현재 유저 목록 반환
+                    }else if (msg.mode == ChatMsg.MODE_CREATE_CHAT_ROOM) {
+                       printDisplay("새 채팅방 생성: " + msg.message);
+                        // 새로운 채팅방 정보 브로드캐스트
+                        broadcasting(msg);
                     }
                 }
 

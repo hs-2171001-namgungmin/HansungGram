@@ -157,7 +157,9 @@ public class MainScreen extends JFrame {
                 userListStr = inMsg.message;
                 System.out.println("현재 유저 목록: " + userListStr);
                 break;
-
+            case ChatMsg.MODE_CREATE_CHAT_ROOM:
+                
+                break;
             default:
                 System.err.println("알 수 없는 메시지 모드: " + inMsg.mode);
         }
@@ -207,7 +209,7 @@ public class MainScreen extends JFrame {
     }
 
 
-    private Color getRandomColor(String userId) {
+    public static Color getRandomColor(String userId) {
         Random rand = new Random(userId.hashCode());
         return new Color(rand.nextInt(256), rand.nextInt(256), rand.nextInt(256));
     }
