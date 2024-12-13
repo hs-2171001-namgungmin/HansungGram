@@ -5,6 +5,8 @@ import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 
 import javax.swing.JButton;
@@ -12,7 +14,9 @@ import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.Timer;
 
 public class ChatlistScreen extends JFrame {
     private JButton undo;
@@ -20,6 +24,7 @@ public class ChatlistScreen extends JFrame {
     private MainScreen mainScreen;
     private String userId;
     private JPanel centerPanel;
+    private Timer timer;
 
     public ChatlistScreen(MainScreen mainScreen, String userId) {
         this.mainScreen = mainScreen;
@@ -27,10 +32,63 @@ public class ChatlistScreen extends JFrame {
         setTitle("ChatlistScreen");
 
         buildGUI();
+        
+        // 처음 열릴 때 즉시 채팅방 목록 요청
+        requestChatRoomList();
+        
+        // 타이머 설정 (예: 5초마다 갱신)
+        timer = new Timer(5000, e -> requestChatRoomList());
+        timer.start();
+        
+        // 창이 닫힐 때 타이머 종료
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                timer.stop();
+            }
+        });
 
         setSize(400, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setVisible(true);
+    }
+    
+    private void requestChatRoomList() {
+        try {
+            // 서버에 채팅방 목록 요청 전송
+            ChatMsg requestChatRoomsMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_CHAT_ROOMS);
+            mainScreen.getOutputStream().writeObject(requestChatRoomsMsg);
+            mainScreen.getOutputStream().flush();
+
+            // 서버로부터 받은 채팅방 목록 가져오기
+            String chatRoomList = mainScreen.getChatRoomList();
+            if (chatRoomList != null && !chatRoomList.isEmpty()) {
+                String[] chatRooms = chatRoomList.split("::");
+                for (String room : chatRooms) {
+                    if (room.contains(userId) && !isChatRoomButtonExists(room)) { // 기존에 없는 버튼만 추가
+                        addChatRoomButton(room);
+                    }
+                }
+            }
+
+            centerPanel.revalidate();
+            centerPanel.repaint();
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "서버와의 연결에 문제가 발생했습니다. 다시 시도해 주세요.", "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private boolean isChatRoomButtonExists(String chatRoomName) {
+        for (int i = 0; i < centerPanel.getComponentCount(); i++) {
+            if (centerPanel.getComponent(i) instanceof JButton) {
+                JButton button = (JButton) centerPanel.getComponent(i);
+                if (button.getText().equals(chatRoomName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void buildGUI() {
@@ -116,6 +174,14 @@ public class ChatlistScreen extends JFrame {
                             }
                             if (selectedUsers.length() > 0) {
                                 addChatRoomButton(selectedUsers.toString());
+                                
+                                try {
+                                    ChatMsg createChatRoomMsg = new ChatMsg(userId, ChatMsg.MODE_CREATE_CHAT_ROOM, selectedUsers.toString());
+                                    mainScreen.getOutputStream().writeObject(createChatRoomMsg);
+                                    mainScreen.getOutputStream().flush();
+                                } catch (IOException e1) {
+                                    e1.printStackTrace();
+                                }
                             }
                             dialog.dispose();
                         }
@@ -155,5 +221,14 @@ public class ChatlistScreen extends JFrame {
         centerPanel.add(chatRoomButton);
         centerPanel.revalidate();
         centerPanel.repaint();
+        
+        /*
+        try {
+            ChatMsg createChatRoomMsg = new ChatMsg(userId, ChatMsg.MODE_CREATE_CHAT_ROOM, chatRoomName);
+            mainScreen.getOutputStream().writeObject(createChatRoomMsg);
+            mainScreen.getOutputStream().flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }*/
     }
 }

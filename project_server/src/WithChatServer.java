@@ -35,6 +35,7 @@ public class WithChatServer extends JFrame {
     private JButton b_connect, b_disconnect, b_exit;
 
     private static final String POSTS_FILE = "saved_posts/posts_data.ser"; // 게시물 저장 파일 경로
+    private Vector<String> chatRooms = new Vector<>(); // 채팅방 목록 저장
 
     public WithChatServer(int Port) {
         super("With ChatServer");
@@ -197,6 +198,24 @@ public class WithChatServer extends JFrame {
                         sendPostsToClient(out);
                     }else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
                         sendUserList(); // 현재 유저 목록 반환
+                    }else if (msg.mode == ChatMsg.MODE_CREATE_CHAT_ROOM) {
+                    	if (!chatRooms.contains(msg.message)) { // 중복 방지
+                            chatRooms.add(msg.message);
+                    	}
+                    	printDisplay("새 채팅방 생성: " + msg.message);
+                    	// 해당 채팅방 참가자들에게 채팅방 생성 메시지 전송
+                        for (ClientHandler c : users) {
+                            if (msg.message.contains(c.uid)) { // 채팅방에 포함된 유저만 전송
+                                try {
+                                    c.out.writeObject(msg);
+                                    c.out.flush();
+                                } catch (IOException e) {
+                                    System.err.println("채팅방 생성 메시지 전송 오류: " + e.getMessage());
+                                }
+                            }
+                        }
+                    }else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_ROOMS) {
+                        sendChatRoomList(out); // 현재 채팅방 목록 전송
                     }
                 }
 
@@ -224,6 +243,18 @@ public class WithChatServer extends JFrame {
                 System.err.println("유저 목록 전송 오류: " + e.getMessage());
             }
         }
+        
+        private void sendChatRoomList(ObjectOutputStream out) {
+            try {
+                String chatRoomList = String.join("::", chatRooms); // 채팅방 목록 문자열 생성
+                ChatMsg roomListMsg = new ChatMsg("server", ChatMsg.MODE_REQUEST_CHAT_ROOMS, chatRoomList);
+                out.writeObject(roomListMsg);
+                out.flush();
+            } catch (IOException e) {
+                System.err.println("채팅방 목록 전송 오류: " + e.getMessage());
+            }
+        }
+        
         private void savePost(ChatMsg postMsg) {
             try {
                 File postDir = new File("saved_posts");

@@ -1,19 +1,34 @@
-import javax.swing.*;
-import java.awt.*;
-import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.util.Random;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.RenderingHints;
 import java.awt.event.ActionListener;
-
-import javax.swing.*;
-import java.awt.*;
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Random;
+
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 public class MainScreen extends JFrame {
     private JPanel postPanel;
@@ -23,6 +38,8 @@ public class MainScreen extends JFrame {
     private ObjectOutputStream out;
     private Thread receiveThread;
     private String userListStr = ""; // 유저 목록 저장
+    private String chatRoomListStr = ""; // 채팅방 목록 저장
+
     
     public MainScreen(String userId, String serverAddress, int serverPort) {
         this.userId = userId;
@@ -157,12 +174,25 @@ public class MainScreen extends JFrame {
                 userListStr = inMsg.message;
                 System.out.println("현재 유저 목록: " + userListStr);
                 break;
+            case ChatMsg.MODE_CREATE_CHAT_ROOM:
+            	
+            	break;
+            case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
+            	String[] rooms = inMsg.message.split("::");
+                HashSet<String> uniqueRooms = new HashSet<>(Arrays.asList(rooms)); // 중복 제거
+                chatRoomListStr = String.join("::", uniqueRooms);
+                System.out.println("현재 채팅방 목록: " + chatRoomListStr);
+            	
+                break;
 
             default:
                 System.err.println("알 수 없는 메시지 모드: " + inMsg.mode);
         }
     }
     
+    public String getChatRoomList() {
+        return chatRoomListStr;
+    }
 
     public void addPost(String content, ImageIcon image, String userId) {
         JPanel post = new JPanel(new BorderLayout());
