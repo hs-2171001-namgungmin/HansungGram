@@ -16,8 +16,8 @@ import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import javax.swing.BorderFactory;
@@ -179,8 +179,15 @@ public class MainScreen extends JFrame {
             	break;
             case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
             	String[] rooms = inMsg.message.split("::");
-                HashSet<String> uniqueRooms = new HashSet<>(Arrays.asList(rooms)); // 중복 제거
-                chatRoomListStr = String.join("::", uniqueRooms);
+                //HashSet<String> uniqueRooms = new HashSet<>(Arrays.asList(rooms)); // 중복 제거
+            	List<String> roomList = new ArrayList<>();
+            	for (String room : rooms) {
+            	    // roomList에 아직 이 room이 없다면 추가한다.
+            	    if (!roomList.contains(room)) {
+            	        roomList.add(room);
+            	    }
+            	}
+                chatRoomListStr = String.join("::", roomList);
                 System.out.println("현재 채팅방 목록: " + chatRoomListStr);
             	
                 break;
@@ -237,7 +244,7 @@ public class MainScreen extends JFrame {
     }
 
 
-    private Color getRandomColor(String userId) {
+    public static Color getRandomColor(String userId) {
         Random rand = new Random(userId.hashCode());
         return new Color(rand.nextInt(256), rand.nextInt(256), rand.nextInt(256));
     }

@@ -13,6 +13,7 @@ public class ChatMsg implements Serializable {
     public final static int MODE_REQUEST_POSTS = 0x60; // 게시물 요청
     public final static int MODE_TX_USER_LIST = 0x70; // 유저 목록 전송
     public final static int MODE_CREATE_CHAT_ROOM = 0x80;
+
     public static final int MODE_REQUEST_CHAT_ROOMS = 0x90; // 채팅방 목록 요청
     
     String userID;

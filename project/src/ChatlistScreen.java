@@ -218,9 +218,17 @@ public class ChatlistScreen extends JFrame {
         chatRoomButton.setContentAreaFilled(false); // 버튼 배경색 투명
         chatRoomButton.setFocusPainted(false);
         chatRoomButton.setBorderPainted(true);
+
+        // 채팅방 버튼 클릭 이벤트
+        chatRoomButton.addActionListener(e -> {
+            // ChatScreen으로 이동
+            new ChatScreen(chatRoomName, userId); // 새로운 ChatScreen 생성
+        });
+
         centerPanel.add(chatRoomButton);
         centerPanel.revalidate();
         centerPanel.repaint();
+
         
         /*
         try {
@@ -230,5 +238,6 @@ public class ChatlistScreen extends JFrame {
         } catch (IOException e) {
             e.printStackTrace();
         }*/
+
     }
 }

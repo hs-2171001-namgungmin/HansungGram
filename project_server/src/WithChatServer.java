@@ -199,6 +199,7 @@ public class WithChatServer extends JFrame {
                     }else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
                         sendUserList(); // 현재 유저 목록 반환
                     }else if (msg.mode == ChatMsg.MODE_CREATE_CHAT_ROOM) {
+
                     	if (!chatRooms.contains(msg.message)) { // 중복 방지
                             chatRooms.add(msg.message);
                     	}
@@ -216,6 +217,7 @@ public class WithChatServer extends JFrame {
                         }
                     }else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_ROOMS) {
                         sendChatRoomList(out); // 현재 채팅방 목록 전송
+
                     }
                 }
 
