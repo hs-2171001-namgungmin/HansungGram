@@ -41,8 +41,8 @@ public class ChatlistScreen extends JFrame {
 		// 처음 열릴 때 즉시 채팅방 목록 요청
 		requestChatRoomList();
 
-		// 5초마다 채팅방 목록 요청
-		timer = new Timer(5000, e -> requestChatRoomList());
+		// 1초마다 채팅방 목록 요청
+		timer = new Timer(1000, e -> requestChatRoomList());
 		timer.start();
 
 		// 창이 닫힐 때 타이머 종료
@@ -199,6 +199,16 @@ public class ChatlistScreen extends JFrame {
 							}
 							if (selectedUsers.length() > 0) {
 								addChatRoomButton(selectedUsers.toString());
+								
+								try {
+                                    ChatMsg createChatRoomMsg = new ChatMsg(userId, ChatMsg.MODE_CREATE_CHAT_ROOM, selectedUsers.toString());
+                                    mainScreen.getOutputStream().writeObject(createChatRoomMsg);
+                                    mainScreen.getOutputStream().flush();
+                                } catch (IOException e1) {
+                                    e1.printStackTrace();
+                                }
+                            
+
 							}
 							dialog.dispose();
 						}
