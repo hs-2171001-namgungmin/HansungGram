@@ -2,6 +2,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Objects;
 import java.util.Random;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -14,19 +17,28 @@ public class ChatScreen extends JFrame {
     private JButton b_image, b_emoji;
     private DefaultStyledDocument document;
     private String userId;
-    private String otherUserId = "Friend"; // 상대방 ID (임시)
     private String lastSender = ""; // 마지막 메시지 보낸 사용자
+    private ObjectOutputStream out; // 서버로 메시지 전송에 사용
+    private String chatRoomName;
 
-    public ChatScreen(String chatRoomName, String userId) {
+    public ChatScreen(String chatRoomName, String userId, ObjectOutputStream out) {
         super("Chat with " + chatRoomName);
         this.userId = userId;
+        this.chatRoomName = chatRoomName;
 
+        if (out == null) {
+            throw new IllegalArgumentException("ObjectOutputStream cannot be null");
+        }
+        this.out = out;
         buildGUI();
 
         setSize(400, 600);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         setVisible(true);
+    }
+    public String getChatRoomName() {
+        return chatRoomName;
     }
 
     private void buildGUI() {
@@ -90,13 +102,16 @@ public class ChatScreen extends JFrame {
         t_input = new JTextField(30);
         t_input.setBorder(null); //테두리 삭제
         t_input.setBackground(Color.LIGHT_GRAY);
+        // 메시지 전송 이벤트 추가
         t_input.addActionListener(e -> {
             String message = t_input.getText();
             if (!message.isEmpty()) {
-                displayMessage(message, true);
+                sendMessageToServer(message); // 서버에 메시지 전송
                 t_input.setText("");
             }
         });
+
+
 
         ImageIcon emoji = new ImageIcon("emoji.png");
 		Image img = emoji.getImage();
@@ -177,8 +192,21 @@ public class ChatScreen extends JFrame {
 
         return p;
     }
-    private void displayMessage(String message, boolean isUser) {
-        String sender = isUser ? userId : otherUserId;
+    // 서버로 메시지 전송 메서드
+    private void sendMessageToServer(String message) {
+        try {
+            // 보낸 사람 ID를 메시지에 포함
+            String fullMessage = chatRoomName + "::" + userId + "::" + message; 
+            ChatMsg chatMsg = new ChatMsg(userId, ChatMsg.MODE_TX_STRING, fullMessage);
+            out.writeObject(chatMsg);
+            out.flush();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "메시지 전송 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    protected void displayMessage(String senderId, String message) {
+        boolean isUser = senderId.equals(userId); // 보낸 사람 ID가 나의 ID와 같으면 true
 
         JPanel messagePanel = new JPanel(new BorderLayout());
         messagePanel.setOpaque(false);
@@ -187,22 +215,41 @@ public class ChatScreen extends JFrame {
         profileAndBubblePanel.setOpaque(false);
         profileAndBubblePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // 여백 추가
 
-        // 프로필 표시 (이전 사용자와 다를 때만)
-        if (!sender.equals(lastSender)) {
-            JLabel profileLabel = new JLabel() {
-                @Override
-                protected void paintComponent(Graphics g) {
-                    super.paintComponent(g);
-                    Graphics2D g2d = (Graphics2D) g;
-                    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2d.setColor(getRandomColor(sender));
-                    g2d.fillOval(0, 0, getWidth(), getHeight());
-                }
-            };
-            profileLabel.setPreferredSize(new Dimension(30, 30));
-            profileAndBubblePanel.add(profileLabel, isUser ? BorderLayout.EAST : BorderLayout.WEST);
+        // 프로필과 사용자 아이디는 상대방 메시지이거나, 내 메시지가 연속되지 않은 경우만 표시
+        if (!senderId.equals(lastSender)) {
+            if (!isUser) { // 상대방이 보낸 경우
+                JLabel profileLabel = new JLabel() {
+                    @Override
+                    protected void paintComponent(Graphics g) {
+                        super.paintComponent(g);
+                        Graphics2D g2d = (Graphics2D) g;
+                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2d.setColor(getRandomColor(senderId));
+                        g2d.fillOval(0, 0, getWidth(), getHeight());
+                    }
+                };
+                profileLabel.setPreferredSize(new Dimension(30, 30));
+
+                JLabel userIdLabel = new JLabel(senderId);
+                userIdLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
+                userIdLabel.setForeground(Color.GRAY);
+
+                JPanel profilePanel = new JPanel(new BorderLayout());
+                profilePanel.setOpaque(false);
+                profilePanel.add(profileLabel, BorderLayout.WEST);
+                profilePanel.add(Box.createHorizontalStrut(5), BorderLayout.CENTER); // 여백 추가
+                profilePanel.add(userIdLabel, BorderLayout.EAST);
+
+                profileAndBubblePanel.add(profilePanel, BorderLayout.WEST);
+            }
         }
 
+        // 메시지에서 '::' 제거
+        if (message.contains("::")) {
+            message = message.split("::", 2)[1];
+        }
+
+        // 말풍선 설정
         JLabel bubbleLabel = new JLabel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -214,20 +261,8 @@ public class ChatScreen extends JFrame {
             }
         };
 
-     // 텍스트 길이에 따라 다르게 처리
-        if (message.length() < 20) {
-            // 20자 미만: 폭만 조정 (줄바꿈 없음)
-            bubbleLabel.setText("<html><p style='padding: 10px; white-space: nowrap;'>" + message + "</p></html>");
-            bubbleLabel.setPreferredSize(new Dimension(message.length() * 10 + 30, 40)); // 폭과 고정 높이
-        } else {
-            // 20자 이상: 폭 제한 및 줄바꿈 처리
-            bubbleLabel.setText("<html><div style='width: 180px; padding: 10px; word-wrap: break-word; white-space: normal;'>" + message + "</div></html>");
-            
-            // 동적 높이 계산
-            int height = calculateHeight(message, bubbleLabel.getFontMetrics(bubbleLabel.getFont()));
-            bubbleLabel.setPreferredSize(new Dimension(220, height)); // 폭 제한 + 동적 높이
-        }
-
+        // 메시지 내용 처리
+        bubbleLabel.setText("<html><p style='padding: 10px; white-space: normal;'>" + message + "</p></html>");
         bubbleLabel.setForeground(Color.WHITE);
         bubbleLabel.setOpaque(false);
 
@@ -239,13 +274,15 @@ public class ChatScreen extends JFrame {
             document.insertString(len, "\n", null);
             t_display.setCaretPosition(len);
             t_display.insertComponent(messagePanel);
-
-            // 마지막 보낸 사용자 업데이트
-            lastSender = sender;
         } catch (BadLocationException e) {
             e.printStackTrace();
         }
+
+        // 마지막 보낸 사용자 업데이트
+        lastSender = senderId; // 내 메시지도 lastSender를 업데이트
     }
+
+
 
     private int calculateHeight(String message, FontMetrics metrics) {
         int maxWidth = 200; // 말풍선 최대 폭
@@ -292,6 +329,18 @@ public class ChatScreen extends JFrame {
 	    } catch (BadLocationException e) {
 	        e.printStackTrace();
 	    }
+	}
+	@Override
+	public boolean equals(Object obj) {
+	    if (this == obj) return true;
+	    if (obj == null || getClass() != obj.getClass()) return false;
+	    ChatScreen other = (ChatScreen) obj;
+	    return chatRoomName.equals(other.chatRoomName);
+	}
+
+	@Override
+	public int hashCode() {
+	    return Objects.hash(chatRoomName);
 	}
 
 

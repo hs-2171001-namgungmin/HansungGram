@@ -17,7 +17,10 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import javax.swing.BorderFactory;
@@ -29,6 +32,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.SwingUtilities;
 
 public class MainScreen extends JFrame {
     private JPanel postPanel;
@@ -39,7 +43,7 @@ public class MainScreen extends JFrame {
     private Thread receiveThread;
     private String userListStr = ""; // 유저 목록 저장
     private String chatRoomListStr = ""; // 채팅방 목록 저장
-
+    private Map<String, ChatScreen> chatScreens = new HashMap<>(); // 채팅방 이름별 ChatScreen 저장
     
     public MainScreen(String userId, String serverAddress, int serverPort) {
         this.userId = userId;
@@ -63,6 +67,13 @@ public class MainScreen extends JFrame {
         requestPosts(); // 초기 실행 시 게시물 요청
         setVisible(true);
     }
+    public void addChatScreen(String chatRoomName, ChatScreen chatScreen) {
+        chatScreens.put(chatRoomName, chatScreen);
+    }
+
+    public ChatScreen getChatScreen(String chatRoomName) {
+        return chatScreens.get(chatRoomName);
+    }
 
     private void connectToServer(String serverAddress, int serverPort) throws IOException {
         socket = new Socket();
@@ -70,7 +81,7 @@ public class MainScreen extends JFrame {
         socket.connect(sa, 3000); // 3초 타임아웃 설정
 
         out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-
+        out.flush();
         // 수신 스레드 초기화
         receiveThread = new Thread(() -> {
             try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()))) {
@@ -177,6 +188,26 @@ public class MainScreen extends JFrame {
             case ChatMsg.MODE_CREATE_CHAT_ROOM:
             	
             	break;
+            case ChatMsg.MODE_TX_STRING:
+                String[] parts = inMsg.message.split("::", 2);
+                if (parts.length == 2) {
+                    String[] users = parts[0].split(", ");
+                    Arrays.sort(users);
+                    String chatRoomName = String.join(", ", users);
+                    String messageContent = parts[1];
+
+                    SwingUtilities.invokeLater(() -> {
+                        ChatScreen chatScreen = chatScreens.get(chatRoomName);
+                        if (chatScreen == null) {
+                            chatScreen = new ChatScreen(chatRoomName, userId, out);
+                            chatScreens.put(chatRoomName, chatScreen);
+                        }
+                        chatScreen.displayMessage(inMsg.userID, messageContent);
+                    });
+                }
+                break;
+
+
             case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
             	String[] rooms = inMsg.message.split("::");
                 //HashSet<String> uniqueRooms = new HashSet<>(Arrays.asList(rooms)); // 중복 제거

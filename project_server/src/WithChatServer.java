@@ -14,6 +14,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -169,6 +170,25 @@ public class WithChatServer extends JFrame {
         private Socket clientSocket;
         private ObjectOutputStream out;
         private String uid;
+        private void handleChatMessage(ChatMsg msg) {
+            String[] parts = msg.message.split("::", 2);
+            if (parts.length < 2) return;
+
+            String chatRoomName = parts[0];
+            String messageContent = parts[1];
+
+            for (ClientHandler client : users) {
+                if (chatRoomName.contains(client.uid)) {
+                    try {
+                        client.out.writeObject(new ChatMsg(msg.userID, ChatMsg.MODE_TX_STRING, chatRoomName + "::" + messageContent));
+                        client.out.flush();
+                    } catch (IOException e) {
+                        System.err.println("메시지 전송 오류: " + e.getMessage());
+                    }
+                }
+            }
+        }
+
 
         public ClientHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
@@ -199,26 +219,37 @@ public class WithChatServer extends JFrame {
                     }else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
                         sendUserList(); //현재 유저 목록 반환
                     }else if (msg.mode == ChatMsg.MODE_CREATE_CHAT_ROOM) {
+                	    //채팅방 이름 알파벳 순으로 정렬
+                	    String[] usersInRoom = msg.message.split(", ");
+                	    Arrays.sort(usersInRoom);
+                	    String sortedRoomName = String.join(", ", usersInRoom);
 
-                    	if (!chatRooms.contains(msg.message)) { //중복 방지
-                            chatRooms.add(msg.message);
-                    	}
-                    	printDisplay("새 채팅방 생성: " + msg.message);
-                    	// 해당 채팅방 참가자들에게 채팅방 생성 메시지 전송
-                        for (ClientHandler c : users) {
-                            if (msg.message.contains(c.uid)) { //채팅방에 포함된 유저만 전송
-                                try {
-                                    c.out.writeObject(msg);
-                                    c.out.flush();
-                                } catch (IOException e) {
-                                    System.err.println("채팅방 생성 메시지 전송 오류: " + e.getMessage());
-                                }
-                            }
-                        }
+                	    //중복 채팅방 체크
+                	    if (!chatRooms.contains(sortedRoomName)) {
+                	        chatRooms.add(sortedRoomName);
+                	        printDisplay("새 채팅방 생성: " + sortedRoomName);
+
+                	        //채팅방에 참여한 사용자들에게 알림
+                	        for (ClientHandler c : users) {
+                	            if (sortedRoomName.contains(c.uid)) {
+                	                try {
+                	                    c.out.writeObject(new ChatMsg("server", ChatMsg.MODE_CREATE_CHAT_ROOM, sortedRoomName));
+                	                    c.out.flush();
+                	                } catch (IOException e) {
+                	                    System.err.println("채팅방 생성 메시지 전송 오류: " + e.getMessage());
+                	                }
+                	            }
+                	        }
+                	    }
+                    	
                     }else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_ROOMS) {
                         sendChatRoomList(out); //현재 채팅방 목록 전송
 
                     }
+                    else if (msg.mode ==ChatMsg.MODE_TX_STRING) {
+                        handleChatMessage(msg);
+                    }
+
                 }
 
                 users.remove(this);
@@ -271,7 +302,7 @@ public class WithChatServer extends JFrame {
                 posts.put(imageFileName, postMsg);
                 printDisplay("게시물 저장 완료: " + postMsg.message);
 
-                savePosts(); // 게시물 데이터 저장
+                savePosts(); //게시물 데이터 저장
             } catch (IOException e) {
                 System.err.println("게시물 저장 중 오류 발생: " + e.getMessage());
             }
@@ -279,12 +310,12 @@ public class WithChatServer extends JFrame {
 
         private void sendPostsToClient(ObjectOutputStream clientOut) {
             try {
-                // 게시물 데이터를 오래된 순서대로 정렬
+                //게시물 데이터를 오래된 순서대로 정렬
                 posts.values().stream()
                     .sorted((post1, post2) -> Long.compare(post1.timestamp, post2.timestamp)) // 오래된 순 정렬
                     .forEachOrdered(post -> {
                         try {
-                            clientOut.writeObject(post); // 클라이언트로 전송
+                            clientOut.writeObject(post); //클라이언트로 전송
                             clientOut.flush();
                         } catch (IOException e) {
                             System.err.println("게시물 전송 중 오류 발생: " + e.getMessage());
