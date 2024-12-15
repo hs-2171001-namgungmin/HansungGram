@@ -197,16 +197,16 @@ public class WithChatServer extends JFrame {
                     } else if (msg.mode == ChatMsg.MODE_REQUEST_POSTS) {
                         sendPostsToClient(out);
                     }else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
-                        sendUserList(); // 현재 유저 목록 반환
+                        sendUserList(); //현재 유저 목록 반환
                     }else if (msg.mode == ChatMsg.MODE_CREATE_CHAT_ROOM) {
 
-                    	if (!chatRooms.contains(msg.message)) { // 중복 방지
+                    	if (!chatRooms.contains(msg.message)) { //중복 방지
                             chatRooms.add(msg.message);
                     	}
                     	printDisplay("새 채팅방 생성: " + msg.message);
                     	// 해당 채팅방 참가자들에게 채팅방 생성 메시지 전송
                         for (ClientHandler c : users) {
-                            if (msg.message.contains(c.uid)) { // 채팅방에 포함된 유저만 전송
+                            if (msg.message.contains(c.uid)) { //채팅방에 포함된 유저만 전송
                                 try {
                                     c.out.writeObject(msg);
                                     c.out.flush();
@@ -216,7 +216,7 @@ public class WithChatServer extends JFrame {
                             }
                         }
                     }else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_ROOMS) {
-                        sendChatRoomList(out); // 현재 채팅방 목록 전송
+                        sendChatRoomList(out); //현재 채팅방 목록 전송
 
                     }
                 }
@@ -231,7 +231,7 @@ public class WithChatServer extends JFrame {
         private void sendUserList() {
             Vector<String> userList = new Vector<>();
             for (ClientHandler c : users) {
-                if (c.uid != null) {  // uid가 null이 아닌 경우에만 추가
+                if (c.uid != null) {  //uid가 null이 아닌 경우에만 추가
                     userList.add(c.uid);
                 }
             }
@@ -248,7 +248,7 @@ public class WithChatServer extends JFrame {
         
         private void sendChatRoomList(ObjectOutputStream out) {
             try {
-                String chatRoomList = String.join("::", chatRooms); // 채팅방 목록 문자열 생성
+                String chatRoomList = String.join("::", chatRooms); //채팅방 목록 문자열 생성
                 ChatMsg roomListMsg = new ChatMsg("server", ChatMsg.MODE_REQUEST_CHAT_ROOMS, chatRoomList);
                 out.writeObject(roomListMsg);
                 out.flush();

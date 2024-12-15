@@ -52,7 +52,7 @@ public class LoginScreen extends JFrame {
 		JLabel id = new JLabel("아이디");
 		id.setBounds(100, 160, 50, 30);
 		t_id = new JTextField(20);
-		t_id.setBorder(null); // 테두리 삭제
+		t_id.setBorder(null); //테두리 삭제
 		t_id.setBackground(Color.LIGHT_GRAY);
 		t_id.setBounds(170, 160, 100, 30);
 
@@ -69,8 +69,8 @@ public class LoginScreen extends JFrame {
 		p.add(t_pw);
 
 		b_login = new JButton("로그인");
-		b_login.setContentAreaFilled(false); // 버튼 배경색 투명
-		b_login.setBorderPainted(false); // 버튼 테두리 삭제
+		b_login.setContentAreaFilled(false); //버튼 배경색 투명
+		b_login.setBorderPainted(false); //버튼 테두리 삭제
 		b_login.setBounds(180, 240, 80, 30);
 		
         b_login.addActionListener(new ActionListener() {
@@ -82,8 +82,8 @@ public class LoginScreen extends JFrame {
                 if (clientId.isEmpty() || password.isEmpty()) {
                     JOptionPane.showMessageDialog(null, "아이디와 비밀번호를 입력하세요.", "경고", JOptionPane.WARNING_MESSAGE);
                 } else {
-                    dispose(); // 로그인 창 닫기
-                    new MainScreen(clientId, serverAddress, serverPort); // 메인 화면 열기
+                    dispose(); //로그인 창 닫기
+                    new MainScreen(clientId, serverAddress, serverPort); //메인 화면 열기
                 }
             }
         });
