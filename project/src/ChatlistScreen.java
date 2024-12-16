@@ -195,7 +195,7 @@ public class ChatlistScreen extends JFrame {
 
 							// 중복 채팅방 버튼 확인 후 추가
 							if (!isChatRoomButtonExists(sortedChatRoomName)) {
-								addChatRoomButton(sortedChatRoomName);
+								
 								try {
 									// 서버에 채팅방 생성 요청
 									ChatMsg createChatRoomMsg = new ChatMsg(userId, ChatMsg.MODE_CREATE_CHAT_ROOM,
