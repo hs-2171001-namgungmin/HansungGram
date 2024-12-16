@@ -248,8 +248,12 @@ public class WithChatServer extends JFrame {
                     }
                     else if (msg.mode ==ChatMsg.MODE_TX_STRING) {
                         handleChatMessage(msg);
+                    }else if (msg.mode == ChatMsg.MODE_TX_IMAGE) {
+                        if (msg.message == null) {
+                            msg.message = "image::" + msg.userID; // 기본값 설정
+                        }
+                        broadcasting(msg);
                     }
-
                 }
 
                 users.remove(this);

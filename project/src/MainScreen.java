@@ -206,6 +206,17 @@ public class MainScreen extends JFrame {
                     });
                 }
                 break;
+            case ChatMsg.MODE_TX_IMAGE:
+                SwingUtilities.invokeLater(() -> {
+                    String chatRoomName = (inMsg.message != null) ? inMsg.message.split("::")[0] : "Unknown Room";
+                    ChatScreen chatScreen = chatScreens.get(chatRoomName);
+                    if (chatScreen == null) {
+                        chatScreen = new ChatScreen(chatRoomName, userId, out);
+                        chatScreens.put(chatRoomName, chatScreen);
+                    }
+                    chatScreen.printDisplay(inMsg.image, inMsg.userID.equals(userId));
+                });
+                break;
 
 
             case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
