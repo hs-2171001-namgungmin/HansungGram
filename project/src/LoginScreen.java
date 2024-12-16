@@ -1,9 +1,21 @@
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
-import javax.swing.*;
+
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 public class LoginScreen extends JFrame {
     private JTextField t_id;
@@ -73,20 +85,44 @@ public class LoginScreen extends JFrame {
 		b_login.setBorderPainted(false); //버튼 테두리 삭제
 		b_login.setBounds(180, 240, 80, 30);
 		
-        b_login.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String clientId = t_id.getText().trim();
-                String password = t_pw.getText();
+		b_login.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent e) {
+		        String clientId = t_id.getText().trim();
+		        String password = t_pw.getText();
 
-                if (clientId.isEmpty() || password.isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "아이디와 비밀번호를 입력하세요.", "경고", JOptionPane.WARNING_MESSAGE);
-                } else {
-                    dispose(); //로그인 창 닫기
-                    new MainScreen(clientId, serverAddress, serverPort); //메인 화면 열기
-                }
-            }
-        });
+		        if (clientId.isEmpty() || password.isEmpty()) {
+		            JOptionPane.showMessageDialog(null, "아이디와 비밀번호를 입력하세요.", "경고", JOptionPane.WARNING_MESSAGE);
+		            return;
+		        }
+
+		        try {
+		            // 서버 연결
+		            Socket socket = new Socket(serverAddress, serverPort);
+		            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+		            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+
+		            // 로그인 메시지 전송
+		            String loginMessage = clientId + "::" + password;
+		            ChatMsg loginMsg = new ChatMsg(clientId, ChatMsg.MODE_LOGIN, loginMessage);
+		            out.writeObject(loginMsg);
+		            out.flush();
+
+		            // 서버 응답 확인
+		            ChatMsg responseMsg = (ChatMsg) in.readObject();
+		            if ("로그인 성공".equals(responseMsg.message)) {
+		                JOptionPane.showMessageDialog(null, "로그인 성공!");
+		                dispose(); // 로그인 화면 닫기
+		                new MainScreen(clientId, socket, out, in); // 소켓과 스트림 전달
+		            } else {
+		                JOptionPane.showMessageDialog(null, responseMsg.message, "로그인 실패", JOptionPane.ERROR_MESSAGE);
+		                socket.close(); // 실패 시 소켓 종료
+		            }
+		        } catch (IOException | ClassNotFoundException ex) {
+		            JOptionPane.showMessageDialog(null, "서버 연결 실패: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+		        }
+		    }
+		});
 
         p.add(b_login);
         return p;

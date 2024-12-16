@@ -15,11 +15,11 @@ public class PostUploadScreen extends JFrame {
     private ObjectOutputStream out;
     private String userId;
 
-    public PostUploadScreen(MainScreen mainScreen, String userId, Socket socket, ObjectOutputStream out) {
+    public PostUploadScreen(MainScreen mainScreen, String userId) {
         this.mainScreen = mainScreen;
         this.userId = userId;
-        this.socket = socket;
-        this.out = out;
+        this.socket = mainScreen.getSocket();         // MainScreen에서 소켓 가져오기
+        this.out = mainScreen.getOutputStream();      // MainScreen에서 출력 스트림 가져오기
 
         setTitle("Hansunggram - 게시물 업로드");
         setSize(400, 600);

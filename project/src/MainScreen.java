@@ -45,9 +45,10 @@ public class MainScreen extends JFrame {
     private String chatRoomListStr = ""; // 채팅방 목록 저장
     private Map<String, ChatScreen> chatScreens = new HashMap<>(); // 채팅방 이름별 ChatScreen 저장
     
-    public MainScreen(String userId, String serverAddress, int serverPort) {
+    public MainScreen(String userId, Socket socket, ObjectOutputStream out, ObjectInputStream in) {
         this.userId = userId;
-        this.userColor = getRandomColor(userId);
+        this.socket = socket;
+        this.out = out;
 
         setTitle("Hansunggram - 메인 화면");
         setSize(400, 600);
@@ -55,18 +56,58 @@ public class MainScreen extends JFrame {
         setLayout(new BorderLayout());
         getContentPane().setBackground(Color.WHITE);
 
-        try {
-            connectToServer(serverAddress, serverPort);
-            sendUserID(); // 서버에 사용자 ID 전송
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "서버 연결 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
-            System.exit(0);
-        }
+        // 수신 스레드 시작
+        startReceivingMessages(in);
 
         buildGUI();
-        requestPosts(); // 초기 실행 시 게시물 요청
+        requestPosts(); // 게시물 요청
         setVisible(true);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                sendLogoutMessage(); // 로그아웃 메시지 전송
+                System.exit(0);      // 프로그램 종료
+            }
+        });
+
     }
+    private void sendLogoutMessage() {
+        try {
+            // 로그아웃 메시지 생성 및 전송
+            ChatMsg logoutMsg = new ChatMsg(userId, ChatMsg.MODE_LOGOUT);
+            out.writeObject(logoutMsg);
+            out.flush();
+            System.out.println("로그아웃 메시지 전송 완료.");
+        } catch (IOException e) {
+            System.err.println("로그아웃 메시지 전송 오류: " + e.getMessage());
+        }
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public ObjectOutputStream getOutputStream() {
+        return out;
+    }
+
+    private void startReceivingMessages(ObjectInputStream in) {
+        Thread receiveThread = new Thread(() -> {
+            try {
+                while (true) {
+                    ChatMsg inMsg = (ChatMsg) in.readObject();
+                    if (inMsg != null) {
+                        processIncomingMessage(inMsg);
+                    }
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                System.err.println("메시지 수신 중 오류 발생: " + e.getMessage());
+            }
+        });
+        receiveThread.start();
+    }
+
     public void addChatScreen(String chatRoomName, ChatScreen chatScreen) {
         chatScreens.put(chatRoomName, chatScreen);
     }
@@ -99,10 +140,6 @@ public class MainScreen extends JFrame {
     }
     public String getUserList() {
         return userListStr;
-    }
-
-    public ObjectOutputStream getOutputStream() {
-        return out;
     }
 
     private void sendUserID() throws IOException {
@@ -145,8 +182,9 @@ public class MainScreen extends JFrame {
 
         JButton chatButton = createNavButton("✈", e -> new ChatlistScreen(this, userId));
         JButton homeButton = createNavButton("🏠", e -> JOptionPane.showMessageDialog(this, "홈 화면입니다."));
-        JButton postButton = createNavButton("➕", e -> new PostUploadScreen(this, userId, socket, out));
-
+        JButton postButton = createNavButton("➕", e -> 
+        new PostUploadScreen(this, userId)
+    );
         panel.add(chatButton);
         panel.add(homeButton);
         panel.add(postButton);
