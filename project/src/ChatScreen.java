@@ -31,7 +31,7 @@ public class ChatScreen extends JFrame {
         }
         this.out = out;
         buildGUI();
-
+        requestChatHistory(); // 채팅방 진입 시 채팅 기록 요청
         setSize(400, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -354,6 +354,15 @@ public class ChatScreen extends JFrame {
 	    return Objects.hash(chatRoomName);
 	}
 
+	private void requestChatHistory() {
+	    try {
+	        ChatMsg requestHistoryMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_CHAT_HISTORY, chatRoomName);
+	        out.writeObject(requestHistoryMsg);
+	        out.flush();
+	    } catch (IOException e) {
+	        JOptionPane.showMessageDialog(this, "채팅 기록 요청 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+	    }
+	}
 
 
 	private void sendImage() {

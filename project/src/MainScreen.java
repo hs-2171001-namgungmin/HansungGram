@@ -244,18 +244,37 @@ public class MainScreen extends JFrame {
                     });
                 }
                 break;
-            case ChatMsg.MODE_TX_IMAGE:
+            case ChatMsg.MODE_REQUEST_CHAT_HISTORY: // 채팅 기록 수신 처리
+            	 String[] msgParts = inMsg.message.split("::", 2);
+            	    if (msgParts.length == 2) {
+            	        String chatRoomName = msgParts[0];
+            	        String messageContent = msgParts[1];
+            	        
+            	        // ChatScreen 인스턴스 가져오기
+            	        SwingUtilities.invokeLater(() -> {
+            	            ChatScreen chatScreen = chatScreens.get(chatRoomName);
+            	            if (chatScreen != null) {
+            	                chatScreen.displayMessage(inMsg.userID, messageContent);
+            	            }
+            	        });
+            	    }
+            	    break;
+            case ChatMsg.MODE_TX_IMAGE: // 이미지 메시지 수신 시 처리
                 SwingUtilities.invokeLater(() -> {
-                    String chatRoomName = (inMsg.message != null) ? inMsg.message.split("::")[0] : "Unknown Room";
+                    String[] parts1 = (inMsg.message != null) ? inMsg.message.split("::") : new String[] {"Unknown Room", ""};
+                    String chatRoomName = parts1[0]; // 채팅방 이름
                     ChatScreen chatScreen = chatScreens.get(chatRoomName);
+
+                    // 채팅방이 없으면 새로 생성
                     if (chatScreen == null) {
                         chatScreen = new ChatScreen(chatRoomName, userId, out);
                         chatScreens.put(chatRoomName, chatScreen);
                     }
+
+                    // 채팅 화면에 이미지 표시
                     chatScreen.printDisplay(inMsg.image, inMsg.userID.equals(userId));
                 });
                 break;
-
 
             case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
             	String[] rooms = inMsg.message.split("::");
