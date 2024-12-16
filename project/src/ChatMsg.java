@@ -14,6 +14,7 @@ public class ChatMsg implements Serializable {
     public final static int MODE_CREATE_CHAT_ROOM = 0x80; // 채팅방 생성 모드
     public static final int MODE_REQUEST_CHAT_ROOMS = 0x90; // 채팅방 목록 요청
     public final static int MODE_REQUEST_CHAT_HISTORY = 0xA0; // 채팅 기록 요청
+    public final static int MODE_LEAVE_CHAT_ROOM = 0xB0; // 채팅방 나가기
 
     
     String userID;

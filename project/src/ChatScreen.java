@@ -49,39 +49,68 @@ public class ChatScreen extends JFrame {
 	}
 
 	private JPanel createTopPanel() {
-		JPanel p = new JPanel();
-		p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-		JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		p1.setBackground(Color.WHITE);
+	    JPanel p = new JPanel();
+	    p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+	    
+	    JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+	    p1.setBackground(Color.WHITE);
 
-		undo = new JButton("◀");
-		undo.setBackground(Color.white);
-		undo.addActionListener(e -> dispose());
-		undo.setFocusPainted(false);
-		undo.setBorderPainted(false);
+	    // 뒤로 가기 버튼
+	    undo = new JButton("◀");
+	    undo.setBackground(Color.white);
+	    undo.addActionListener(e -> dispose());
+	    undo.setFocusPainted(false);
+	    undo.setBorderPainted(false);
 
-		JLabel userName = new JLabel(userId);
+	    // 사용자 이름 표시
+	    JLabel userName = new JLabel(userId);
 
-		p1.add(undo);
-		p1.add(userName);
+	    // 나가기 버튼 추가
+	    JButton leaveButton = new JButton("나가기");
+	    leaveButton.setBackground(Color.white);
+	    leaveButton.setFocusPainted(false);
+	    leaveButton.setBorderPainted(false);
+	    leaveButton.addActionListener(e -> {
+	        try {
+	            // 서버에 채팅방 나가기 메시지 전송
+	            ChatMsg leaveMsg = new ChatMsg(userId, ChatMsg.MODE_LEAVE_CHAT_ROOM, chatRoomName);
+	            out.writeObject(leaveMsg);
+	            out.flush();
 
-		JPanel p2 = new JPanel(new BorderLayout());
-		p2.setBackground(Color.WHITE);
+	            // 사용자에게 알림 후 화면 닫기
+	            JOptionPane.showMessageDialog(this, "채팅방에서 나갔습니다.");
+	            dispose(); // 채팅 화면 닫기
+	        } catch (IOException ex) {
+	            JOptionPane.showMessageDialog(this, "나가기 실패: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+	        }
+	    });
 
-		JLabel message = new JLabel("    메시지");
-		message.setFont(new Font("", Font.PLAIN, 10));
 
-		p2.add(message, BorderLayout.WEST);
+	    // p1 패널에 컴포넌트 추가
+	    p1.add(undo);
+	    p1.add(userName);
+	    p1.add(leaveButton); // 나가기 버튼 추가
 
-		JSeparator separator = new JSeparator();
-		separator.setForeground(Color.GRAY);
+	    // 메시지 레이블과 구분선 추가
+	    JPanel p2 = new JPanel(new BorderLayout());
+	    p2.setBackground(Color.WHITE);
 
-		p.add(p1);
-		p.add(separator);
-		p.add(p2);
+	    JLabel message = new JLabel("    메시지");
+	    message.setFont(new Font("", Font.PLAIN, 10));
 
-		return p;
+	    p2.add(message, BorderLayout.WEST);
+
+	    JSeparator separator = new JSeparator();
+	    separator.setForeground(Color.GRAY);
+
+	    // 상위 패널에 p1과 p2 추가
+	    p.add(p1);
+	    p.add(separator);
+	    p.add(p2);
+
+	    return p;
 	}
+
 
 	private JPanel createCenterPanel() {
 		JPanel p = new JPanel(new BorderLayout());

@@ -14,8 +14,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
@@ -244,6 +246,28 @@ public class WithChatServer extends JFrame {
         private Socket clientSocket;
         private ObjectOutputStream out;
         private String uid;
+        private void handleLeaveChatRoom(String chatRoomName, String userName) {
+            String updatedChatRoomName = removeUserFromChatRoom(chatRoomName, userName);
+
+            synchronized (chatRooms) {
+                chatRooms.remove(chatRoomName); // 기존 채팅방 제거
+
+                if (!updatedChatRoomName.isEmpty()) {
+                    // 남은 사용자가 있을 때만 새로운 채팅방 추가
+                    if (!chatRooms.contains(updatedChatRoomName)) {
+                        chatRooms.add(updatedChatRoomName);
+                        printDisplay("업데이트된 채팅방: " + updatedChatRoomName);
+                    }
+                    // 남은 사용자에게 새로운 채팅방 정보 알림
+                    broadcastUpdatedChatRoomList();
+                } else {
+                    // 남은 사용자가 없으면 채팅 기록 삭제
+                    chatMessages.remove(chatRoomName);
+                    printDisplay("채팅방 삭제됨: " + chatRoomName);
+                }
+            }
+        }
+
         private void handleChatMessage(ChatMsg msg) {
             String[] parts = msg.message.split("::", 2);
             if (parts.length < 2) return;
@@ -366,7 +390,14 @@ public class WithChatServer extends JFrame {
                         broadcasting(msg);
                     }else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_HISTORY) {
                         sendChatHistory(msg.message); // 채팅방 이름(msg.message) 기반으로 채팅 기록 전송
+                    }else if (msg.mode == ChatMsg.MODE_LEAVE_CHAT_ROOM) {
+                        // 채팅방 나가기 요청 처리
+                        String chatRoomName = msg.message; // 메시지에는 채팅방 이름이 포함됨
+                        String userName = msg.userID; // 나가는 사용자 이름
+
+                        handleLeaveChatRoom(chatRoomName, userName);
                     }
+
                 }
 
                 users.remove(this);
@@ -376,6 +407,29 @@ public class WithChatServer extends JFrame {
                 printDisplay(uid + " 연결 끊김. 현재 참가자 수: " + users.size());
             }
         }
+        private String removeUserFromChatRoom(String chatRoomName, String userName) {
+            // 채팅방 이름을 쉼표로 나누어 리스트로 변환
+            String[] users = chatRoomName.split(", ");
+            List<String> userList = new ArrayList<>(Arrays.asList(users));
+
+            // 사용자 이름 제거
+            userList.remove(userName);
+
+            // 남은 사용자들을 쉼표로 이어 붙여 새 채팅방 이름 생성
+            return String.join(", ", userList);
+        }
+        private void broadcastUpdatedChatRoomList() {
+            String chatRoomList = String.join("::", chatRooms);
+            for (ClientHandler client : users) {
+                try {
+                    client.out.writeObject(new ChatMsg("server", ChatMsg.MODE_REQUEST_CHAT_ROOMS, chatRoomList));
+                    client.out.flush();
+                } catch (IOException e) {
+                    System.err.println("채팅방 목록 브로드캐스트 오류: " + e.getMessage());
+                }
+            }
+        }
+
         private void sendUserList() {
             Vector<String> userList = new Vector<>();
             for (ClientHandler c : users) {

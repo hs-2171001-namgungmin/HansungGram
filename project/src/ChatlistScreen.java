@@ -23,6 +23,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 public class ChatlistScreen extends JFrame {
@@ -62,34 +63,41 @@ public class ChatlistScreen extends JFrame {
 	// 서버에 채팅방 목록 요청
 	private void requestChatRoomList() {
 	    try {
+	        // 서버에 채팅방 목록 요청 메시지 전송
 	        ChatMsg requestChatRoomsMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_CHAT_ROOMS);
 	        mainScreen.getOutputStream().writeObject(requestChatRoomsMsg);
 	        mainScreen.getOutputStream().flush();
-
+	        
 	        // 서버에서 채팅방 목록 가져오기
 	        String chatRoomList = mainScreen.getChatRoomList();
+
 	        if (chatRoomList != null && !chatRoomList.isEmpty()) {
-	            String[] chatRooms = chatRoomList.split("::");
+	            // 채팅방 목록 정렬 및 필터링
+	            String[] chatRooms = Arrays.stream(chatRoomList.split("::"))
+	                    .map(room -> {
+	                        String[] participants = room.split(", ");
+	                        Arrays.sort(participants); // 알파벳 순 정렬
+	                        return String.join(", ", participants);
+	                    })
+	                    .filter(room -> room.contains(userId)) // 현재 사용자가 포함된 채팅방만
+	                    .distinct() // 중복 제거
+	                    .toArray(String[]::new);
 
-	            // 기존 centerPanel 초기화
-	            centerPanel.removeAll();
-
-	            for (String room : chatRooms) {
-	                String[] participants = room.split(", ");
-	                Arrays.sort(participants); // 알파벳 순 정렬
-	                String sortedRoomName = String.join(", ", participants);
-
-	                if (sortedRoomName.contains(userId) && !isChatRoomButtonExists(sortedRoomName)) {
-	                    addChatRoomButton(sortedRoomName);
+	            // UI 갱신
+	            SwingUtilities.invokeLater(() -> {
+	                centerPanel.removeAll(); // 기존 채팅방 버튼 제거
+	                for (String room : chatRooms) {
+	                    addChatRoomButton(room); // 새로운 버튼 추가
 	                }
-	            }
-	            centerPanel.revalidate();
-	            centerPanel.repaint();
+	                centerPanel.revalidate();
+	                centerPanel.repaint();
+	            });
 	        }
 	    } catch (IOException e) {
 	        JOptionPane.showMessageDialog(this, "채팅방 목록을 불러오는 중 문제가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
 	    }
 	}
+
 
 	// 채팅방 버튼이 이미 존재하는지 확인
 	private boolean isChatRoomButtonExists(String chatRoomName) {

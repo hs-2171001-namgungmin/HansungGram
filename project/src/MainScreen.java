@@ -295,6 +295,11 @@ public class MainScreen extends JFrame {
                     System.out.println("현재 채팅방 목록: " + chatRoomListStr);
                 }
                 break;
+            case ChatMsg.MODE_LEAVE_CHAT_ROOM:
+                SwingUtilities.invokeLater(() -> {
+                    JOptionPane.showMessageDialog(this, inMsg.userID + "님이 채팅방을 나갔습니다.");
+                });
+                break;
 
 
             default:
