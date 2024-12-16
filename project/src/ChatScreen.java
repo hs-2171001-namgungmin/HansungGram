@@ -13,58 +13,59 @@ import javax.swing.text.*;
 public class ChatScreen extends JFrame {
 	private JButton undo;
 	private JTextField t_input;
-    private JTextPane t_display;
-    private JButton b_image, b_emoji;
-    private DefaultStyledDocument document;
-    private String userId;
-    private String lastSender = ""; // 마지막 메시지 보낸 사용자
-    private ObjectOutputStream out; // 서버로 메시지 전송에 사용
-    private String chatRoomName;
+	private JTextPane t_display;
+	private JButton b_image, b_emoji;
+	private DefaultStyledDocument document;
+	private String userId;
+	private String lastSender = ""; // 마지막 메시지 보낸 사용자
+	private ObjectOutputStream out; // 서버로 메시지 전송에 사용
+	private String chatRoomName;
 
-    public ChatScreen(String chatRoomName, String userId, ObjectOutputStream out) {
-        super("Chat with " + chatRoomName);
-        this.userId = userId;
-        this.chatRoomName = chatRoomName;
+	public ChatScreen(String chatRoomName, String userId, ObjectOutputStream out) {
+		super("Chat with " + chatRoomName);
+		this.userId = userId;
+		this.chatRoomName = chatRoomName;
 
-        if (out == null) {
-            throw new IllegalArgumentException("ObjectOutputStream cannot be null");
-        }
-        this.out = out;
-        buildGUI();
-        requestChatHistory(); // 채팅방 진입 시 채팅 기록 요청
-        setSize(400, 600);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		if (out == null) {
+			throw new IllegalArgumentException("ObjectOutputStream cannot be null");
+		}
+		this.out = out;
+		buildGUI();
+		requestChatHistory(); // 채팅방 진입 시 채팅 기록 요청
+		setSize(400, 600);
+		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        setVisible(true);
-    }
-    public String getChatRoomName() {
-        return chatRoomName;
-    }
+		setVisible(true);
+	}
 
-    private void buildGUI() {
-        add(createTopPanel(), BorderLayout.NORTH);
-        add(createCenterPanel(), BorderLayout.CENTER);
-        add(createInputPanel(), BorderLayout.SOUTH);
-    }
+	public String getChatRoomName() {
+		return chatRoomName;
+	}
 
-    private JPanel createTopPanel() {
-    	JPanel p = new JPanel();
+	private void buildGUI() {
+		add(createTopPanel(), BorderLayout.NORTH);
+		add(createCenterPanel(), BorderLayout.CENTER);
+		add(createInputPanel(), BorderLayout.SOUTH);
+	}
+
+	private JPanel createTopPanel() {
+		JPanel p = new JPanel();
 		p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        p1.setBackground(Color.WHITE);
+		JPanel p1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		p1.setBackground(Color.WHITE);
 
-        undo = new JButton("◀");
-        undo.setBackground(Color.white);
-        undo.addActionListener(e -> dispose());
-        undo.setFocusPainted(false);
-        undo.setBorderPainted(false);
+		undo = new JButton("◀");
+		undo.setBackground(Color.white);
+		undo.addActionListener(e -> dispose());
+		undo.setFocusPainted(false);
+		undo.setBorderPainted(false);
 
-        JLabel userName = new JLabel(userId);
-               
-        p1.add(undo);
-        p1.add(userName);
+		JLabel userName = new JLabel(userId);
 
-        JPanel p2 = new JPanel(new BorderLayout());
+		p1.add(undo);
+		p1.add(userName);
+
+		JPanel p2 = new JPanel(new BorderLayout());
 		p2.setBackground(Color.WHITE);
 
 		JLabel message = new JLabel("    메시지");
@@ -80,40 +81,38 @@ public class ChatScreen extends JFrame {
 		p.add(p2);
 
 		return p;
-    }
+	}
 
-    private JPanel createCenterPanel() {
-        JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(Color.white);
+	private JPanel createCenterPanel() {
+		JPanel p = new JPanel(new BorderLayout());
+		p.setBackground(Color.white);
 
-        document = new DefaultStyledDocument();
-        t_display = new JTextPane(document);
-        t_display.setEditable(false);
+		document = new DefaultStyledDocument();
+		t_display = new JTextPane(document);
+		t_display.setEditable(false);
 
-        p.add(new JScrollPane(t_display), BorderLayout.CENTER);
+		p.add(new JScrollPane(t_display), BorderLayout.CENTER);
 
-        return p;
-    }
+		return p;
+	}
 
-    private JPanel createInputPanel() {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        p.setBackground(Color.white);
+	private JPanel createInputPanel() {
+		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		p.setBackground(Color.white);
 
-        t_input = new JTextField(30);
-        t_input.setBorder(null); //테두리 삭제
-        t_input.setBackground(Color.LIGHT_GRAY);
-        // 메시지 전송 이벤트 추가
-        t_input.addActionListener(e -> {
-            String message = t_input.getText();
-            if (!message.isEmpty()) {
-                sendMessageToServer(message); // 서버에 메시지 전송
-                t_input.setText("");
-            }
-        });
+		t_input = new JTextField(30);
+		t_input.setBorder(null); // 테두리 삭제
+		t_input.setBackground(Color.LIGHT_GRAY);
+		// 메시지 전송 이벤트 추가
+		t_input.addActionListener(e -> {
+			String message = t_input.getText();
+			if (!message.isEmpty()) {
+				sendMessageToServer(message); // 서버에 메시지 전송
+				t_input.setText("");
+			}
+		});
 
-
-
-        ImageIcon emoji = new ImageIcon("emoji.png");
+		ImageIcon emoji = new ImageIcon("emoji.png");
 		Image img = emoji.getImage();
 		Image newImg = img.getScaledInstance(28, 28, java.awt.Image.SCALE_SMOOTH);
 
@@ -123,45 +122,42 @@ public class ChatScreen extends JFrame {
 		b_emoji.setFocusPainted(false);
 		b_emoji.setBorderPainted(false);
 		b_emoji.addActionListener(new ActionListener() {
-		    @Override
-		    public void actionPerformed(ActionEvent e) {
-		        JDialog dialog = new JDialog((Frame) null, "Select an Emoji", true);
-		        dialog.setLayout(new GridLayout(4, 3));
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JDialog dialog = new JDialog((Frame) null, "Select an Emoji", true);
+				dialog.setLayout(new GridLayout(4, 3));
 
-		        for (int i = 1; i <= 12; i++) {
-		            ImageIcon icon = new ImageIcon("emoji" + i + ".png");
-		            Image reicon = icon.getImage();
-		            Image newreicon = reicon.getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
+				for (int i = 1; i <= 12; i++) {
+					ImageIcon icon = new ImageIcon("emoji" + i + ".png");
+					Image reicon = icon.getImage();
+					Image newreicon = reicon.getScaledInstance(30, 30, java.awt.Image.SCALE_SMOOTH);
 
-		            ImageIcon resizedIcon = new ImageIcon(newreicon);
+					ImageIcon resizedIcon = new ImageIcon(newreicon);
 
-		            JButton emoButton = new JButton(resizedIcon);
-		            emoButton.setBackground(Color.white);
-		            emoButton.setFocusPainted(false);
-		            emoButton.setBorderPainted(false);
+					JButton emoButton = new JButton(resizedIcon);
+					emoButton.setBackground(Color.white);
+					emoButton.setFocusPainted(false);
+					emoButton.setBorderPainted(false);
 
-		            emoButton.addActionListener(event -> {
-		                dialog.dispose();
-		                try {
-		                	ChatMsg emojiMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::emoji", resizedIcon);
-		                	out.writeObject(emojiMsg);
-		                	out.flush();
-		                } catch (IOException ex) {
-		                	JOptionPane.showMessageDialog(
-		                		    null, 
-		                		    "이미지 전송 실패: " + ex.getMessage(),
-		                		    "오류",
-		                		    JOptionPane.ERROR_MESSAGE
-		                		);
-		                }
-		            });
+					emoButton.addActionListener(event -> {
+						dialog.dispose();
+						try {
+							ChatMsg emojiMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::emoji",
+									resizedIcon);
+							out.writeObject(emojiMsg);
+							out.flush();
+						} catch (IOException ex) {
+							JOptionPane.showMessageDialog(null, "이미지 전송 실패: " + ex.getMessage(), "오류",
+									JOptionPane.ERROR_MESSAGE);
+						}
+					});
 
-		            dialog.add(emoButton);
-		        }
+					dialog.add(emoButton);
+				}
 
-		        dialog.setSize(250, 250);
-		        dialog.setVisible(true);
-		    }
+				dialog.setSize(250, 250);
+				dialog.setVisible(true);
+			}
 		});
 
 		ImageIcon image = new ImageIcon("File plus.png");
@@ -176,136 +172,139 @@ public class ChatScreen extends JFrame {
 		b_image.addActionListener(new ActionListener() {
 
 			JFileChooser chooser = new JFileChooser();
-			
+
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				FileNameExtensionFilter filter = new FileNameExtensionFilter(
-						"JPG & GIF & PNG Images", //파일 이름에 창에 출력될 문자열
-						"jpg", "gif", "png"); //파일 필터로 사용되는 확장자
-				
+				FileNameExtensionFilter filter = new FileNameExtensionFilter("JPG & GIF & PNG Images", // 파일 이름에 창에 출력될
+																										// 문자열
+						"jpg", "gif", "png"); // 파일 필터로 사용되는 확장자
+
 				chooser.setFileFilter(filter);
-				
+
 				int ret = chooser.showOpenDialog(ChatScreen.this);
-				if(ret != JFileChooser.APPROVE_OPTION) {
+				if (ret != JFileChooser.APPROVE_OPTION) {
 					JOptionPane.showMessageDialog(ChatScreen.this, "파일을 선택하지 않았습니다.");
 					return;
 				}
-				
+
 				t_input.setText(chooser.getSelectedFile().getAbsolutePath());
 				sendImage();
-				
+
 			}
-			
+
 		});
-        p.add(t_input);
-        p.add(b_emoji);
-        p.add(b_image);
+		p.add(t_input);
+		p.add(b_emoji);
+		p.add(b_image);
 
-        return p;
-    }
-    // 서버로 메시지 전송 메서드
-    private void sendMessageToServer(String message) {
-        try {
-            // 보낸 사람 ID를 메시지에 포함
-            String fullMessage = chatRoomName + "::" + userId + "::" + message; 
-            ChatMsg chatMsg = new ChatMsg(userId, ChatMsg.MODE_TX_STRING, fullMessage);
-            out.writeObject(chatMsg);
-            out.flush();
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "메시지 전송 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
-        }
-    }
+		return p;
+	}
 
-    protected void displayMessage(String senderId, String message) {
-        boolean isUser = senderId.equals(userId); // 보낸 사람 ID가 나의 ID와 같으면 true
+	// 서버로 메시지 전송 메서드
+	private void sendMessageToServer(String message) {
+		try {
+			// 보낸 사람 ID를 메시지에 포함
+			String fullMessage = chatRoomName + "::" + userId + "::" + message;
+			ChatMsg chatMsg = new ChatMsg(userId, ChatMsg.MODE_TX_STRING, fullMessage);
+			out.writeObject(chatMsg);
+			out.flush();
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(this, "메시지 전송 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+		}
+	}
 
-        JPanel messagePanel = new JPanel(new BorderLayout());
-        messagePanel.setOpaque(false);
+	private void displayMessageWithProfile(String senderId, JComponent content, boolean isUser) {
+		JPanel messagePanel = new JPanel(new BorderLayout());
+		messagePanel.setOpaque(false);
 
-        JPanel profileAndBubblePanel = new JPanel(new BorderLayout());
-        profileAndBubblePanel.setOpaque(false);
-        profileAndBubblePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // 여백 추가
+		JPanel profileAndBubblePanel = new JPanel(new BorderLayout());
+		profileAndBubblePanel.setOpaque(false);
+		profileAndBubblePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // 여백 추가
 
-        // 프로필과 사용자 아이디는 상대방 메시지이거나, 내 메시지가 연속되지 않은 경우만 표시
-        if (!senderId.equals(lastSender)) {
-            if (!isUser) { // 상대방이 보낸 경우
-                JLabel profileLabel = new JLabel() {
-                    @Override
-                    protected void paintComponent(Graphics g) {
-                        super.paintComponent(g);
-                        Graphics2D g2d = (Graphics2D) g;
-                        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                        g2d.setColor(getRandomColor(senderId));
-                        g2d.fillOval(0, 0, getWidth(), getHeight());
-                    }
-                };
-                profileLabel.setPreferredSize(new Dimension(30, 30));
+		// 프로필과 사용자 아이디는 상대방 메시지이거나, 내 메시지가 연속되지 않은 경우만 표시
+		if (!senderId.equals(lastSender)) {
+			if (!isUser) { //상대방이 보낸 경우
+				JLabel profileLabel = new JLabel() {
+					@Override
+					protected void paintComponent(Graphics g) {
+						super.paintComponent(g);
+						Graphics2D g2d = (Graphics2D) g;
+						g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+						g2d.setColor(getRandomColor(senderId));
+						g2d.fillOval(0, 0, getWidth(), getHeight());
+					}
+				};
+				profileLabel.setPreferredSize(new Dimension(30, 30));
 
-                JLabel userIdLabel = new JLabel(senderId);
-                userIdLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
-                userIdLabel.setForeground(Color.GRAY);
+				JLabel userIdLabel = new JLabel(senderId);
+				userIdLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
+				userIdLabel.setForeground(Color.GRAY);
 
-                JPanel profilePanel = new JPanel(new BorderLayout());
-                profilePanel.setOpaque(false);
-                profilePanel.add(profileLabel, BorderLayout.WEST);
-                profilePanel.add(Box.createHorizontalStrut(5), BorderLayout.CENTER); // 여백 추가
-                profilePanel.add(userIdLabel, BorderLayout.EAST);
+				JPanel profilePanel = new JPanel(new BorderLayout());
+				profilePanel.setOpaque(false);
+				profilePanel.add(profileLabel, BorderLayout.WEST);
+				profilePanel.add(Box.createHorizontalStrut(5), BorderLayout.CENTER); //여백 추가
+				profilePanel.add(userIdLabel, BorderLayout.EAST);
 
-                profileAndBubblePanel.add(profilePanel, BorderLayout.WEST);
-            }
-        }
+				profileAndBubblePanel.add(profilePanel, BorderLayout.WEST);
+			}
+		}
 
-        // 메시지에서 '::' 제거
-        if (message.contains("::")) {
-            message = message.split("::", 2)[1];
-        }
+		// 내용 추가
+		profileAndBubblePanel.add(content, BorderLayout.SOUTH);
+		messagePanel.add(profileAndBubblePanel, isUser ? BorderLayout.EAST : BorderLayout.WEST);
 
-        // 말풍선 설정
-        JLabel bubbleLabel = new JLabel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g;
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isUser ? Color.BLUE : Color.LIGHT_GRAY);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
-                super.paintComponent(g);
-            }
-        };
+		try {
+			int len = document.getLength();
+			document.insertString(len, "\n", null);
+			t_display.setCaretPosition(len);
+			t_display.insertComponent(messagePanel);
+		} catch (BadLocationException e) {
+			e.printStackTrace();
+		}
 
-        // 메시지 내용 처리
-        bubbleLabel.setText("<html><p style='padding: 10px; white-space: normal;'>" + message + "</p></html>");
-        bubbleLabel.setForeground(Color.WHITE);
-        bubbleLabel.setOpaque(false);
+		// 마지막 보낸 사용자 업데이트
+		lastSender = senderId;
+	}
 
-        profileAndBubblePanel.add(bubbleLabel, BorderLayout.SOUTH);
-        messagePanel.add(profileAndBubblePanel, isUser ? BorderLayout.EAST : BorderLayout.WEST);
+	protected void displayMessage(String senderId, String message) {
+		boolean isUser = senderId.equals(userId); // 보낸 사람 ID가 나의 ID와 같으면 true
 
-        try {
-            int len = document.getLength();
-            document.insertString(len, "\n", null);
-            t_display.setCaretPosition(len);
-            t_display.insertComponent(messagePanel);
-        } catch (BadLocationException e) {
-            e.printStackTrace();
-        }
+		// 메시지에서 '::' 제거
+		if (message.contains("::")) {
+			message = message.split("::", 2)[1];
+		}
 
-        // 마지막 보낸 사용자 업데이트
-        lastSender = senderId; // 내 메시지도 lastSender를 업데이트
-    }
+		// 말풍선 설정
+		JLabel bubbleLabel = new JLabel() {
+			@Override
+			protected void paintComponent(Graphics g) {
+				Graphics2D g2 = (Graphics2D) g;
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.setColor(isUser ? Color.BLUE : Color.LIGHT_GRAY);
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 15, 15);
+				super.paintComponent(g);
+			}
+		};
 
+		bubbleLabel.setText("<html><p style='padding: 10px; white-space: normal;'>" + message + "</p></html>");
+		bubbleLabel.setForeground(Color.WHITE);
+		bubbleLabel.setOpaque(false);
 
+		displayMessageWithProfile(senderId, bubbleLabel, isUser);
+	}
 
-    private int calculateHeight(String message, FontMetrics metrics) {
-        int maxWidth = 200; // 말풍선 최대 폭
-        int lineHeight = metrics.getHeight();
-        int textWidth = metrics.stringWidth(message);
+	private int calculateHeight(String message, FontMetrics metrics) {
+		int maxWidth = 200; // 말풍선 최대 폭
+		int lineHeight = metrics.getHeight();
+		int textWidth = metrics.stringWidth(message);
 
-        // 텍스트의 줄 수 계산
-        int lines = Math.max(1, (textWidth / maxWidth) + 1);
+		// 텍스트의 줄 수 계산
+		int lines = Math.max(1, (textWidth / maxWidth) + 1);
 
-        return lines * lineHeight + 20; // 줄 수에 따른 높이 계산 (패딩 포함)
-    }
-    
+		return lines * lineHeight + 20; // 줄 수에 따른 높이 계산 (패딩 포함)
+	}
+
 	private void printDisplay(String msg) {
 		int len = t_display.getDocument().getLength();
 
@@ -317,81 +316,77 @@ public class ChatScreen extends JFrame {
 
 		t_display.setCaretPosition(len);
 	}
-	protected void printDisplay(ImageIcon icon, boolean isUser) {
-	    JPanel emojiPanel = new JPanel(new FlowLayout(isUser ? FlowLayout.RIGHT : FlowLayout.LEFT)); // 사용자 메시지 오른쪽 정렬, 상대방은 왼쪽 정렬
-	    emojiPanel.setOpaque(false);
 
-	    JLabel emojiLabel = new JLabel(icon);
+	protected void printDisplay(ImageIcon icon, String senderId, boolean isUser) {
+		JLabel emojiLabel = new JLabel(icon);
 
-	    // 이미지 크기 조정
-	    if (icon.getIconWidth() > 400) {
-	        Image img = icon.getImage();
-	        Image resizedImg = img.getScaledInstance(200, -1, Image.SCALE_SMOOTH);
-	        icon = new ImageIcon(resizedImg);
-	    }
-	    emojiLabel.setIcon(icon);
+		// 이미지 크기 조정
+		if (icon.getIconWidth() > 400) {
+			Image img = icon.getImage();
+			Image resizedImg = img.getScaledInstance(200, -1, Image.SCALE_SMOOTH);
+			icon = new ImageIcon(resizedImg);
+		}
+		emojiLabel.setIcon(icon);
 
-	    emojiPanel.add(emojiLabel);
-
-	    try {
-	        t_display.setCaretPosition(t_display.getDocument().getLength());
-	        t_display.insertComponent(emojiPanel); // 이모티콘 패널 추가
-	        document.insertString(document.getLength(), "\n", null); // 줄바꿈 추가
-	    } catch (BadLocationException e) {
-	        e.printStackTrace();
-	    }
+		displayMessageWithProfile(senderId, emojiLabel, isUser);
 	}
+
 	@Override
 	public boolean equals(Object obj) {
-	    if (this == obj) return true;
-	    if (obj == null || getClass() != obj.getClass()) return false;
-	    ChatScreen other = (ChatScreen) obj;
-	    return chatRoomName.equals(other.chatRoomName);
+		if (this == obj)
+			return true;
+		if (obj == null || getClass() != obj.getClass())
+			return false;
+		ChatScreen other = (ChatScreen) obj;
+		return chatRoomName.equals(other.chatRoomName);
 	}
 
 	@Override
 	public int hashCode() {
-	    return Objects.hash(chatRoomName);
+		return Objects.hash(chatRoomName);
 	}
 
 	private void requestChatHistory() {
-	    try {
-	        ChatMsg requestHistoryMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_CHAT_HISTORY, chatRoomName);
-	        out.writeObject(requestHistoryMsg);
-	        out.flush();
-	    } catch (IOException e) {
-	        JOptionPane.showMessageDialog(this, "채팅 기록 요청 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
-	    }
+		try {
+			ChatMsg requestHistoryMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_CHAT_HISTORY, chatRoomName);
+			out.writeObject(requestHistoryMsg);
+			out.flush();
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(this, "채팅 기록 요청 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+		}
 	}
-
 
 	private void sendImage() {
-	    String filename = t_input.getText().strip();
-	    if (filename.isEmpty()) return;
+		String filename = t_input.getText().strip();
+		if (filename.isEmpty())
+			return;
 
-	    File file = new File(filename);
-	    if (!file.exists()) {
-	        printDisplay(">> 파일이 존재하지 않습니다: " + filename);
-	        return;
-	    }
+		File file = new File(filename);
+		if (!file.exists()) {
+			printDisplay(">> 파일이 존재하지 않습니다: " + filename);
+			return;
+		}
 
-	    // ImageIcon 객체 생성
-	    ImageIcon icon = new ImageIcon(filename);
+		// ImageIcon 객체 생성
+		ImageIcon icon = new ImageIcon(filename);
 
-	    try {
-	        // 서버로 이미지 전송
-	    	ChatMsg imageMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::image", icon);
-	    	out.writeObject(imageMsg);
-	    	out.flush();
-	    } catch (IOException e) {
-	        JOptionPane.showMessageDialog(this, "이미지 전송 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
-	    }
-	    t_input.setText("");
+		try {
+			// 서버로 이미지 전송
+			ChatMsg imageMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::image", icon);
+			out.writeObject(imageMsg);
+			out.flush();
+
+			// 전송된 이미지 화면에 표시
+			printDisplay(icon, userId, true);
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(this, "이미지 전송 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+		}
+		t_input.setText("");
 	}
 
-    public static Color getRandomColor(String userId) {
-        Random rand = new Random(userId.hashCode());
-        return new Color(rand.nextInt(256), rand.nextInt(256), rand.nextInt(256));
-    }
+	public static Color getRandomColor(String userId) {
+		Random rand = new Random(userId.hashCode());
+		return new Color(rand.nextInt(256), rand.nextInt(256), rand.nextInt(256));
+	}
 
 }
