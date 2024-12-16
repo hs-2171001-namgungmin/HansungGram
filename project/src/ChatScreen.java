@@ -376,8 +376,6 @@ public class ChatScreen extends JFrame {
 			out.writeObject(imageMsg);
 			out.flush();
 
-			// 전송된 이미지 화면에 표시
-			printDisplay(icon, userId, true);
 		} catch (IOException e) {
 			JOptionPane.showMessageDialog(this, "이미지 전송 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
 		}
