@@ -1,9 +1,20 @@
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.net.Socket;
-import javax.swing.*;
+
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 public class LoginScreen extends JFrame {
     private JTextField t_id;
@@ -14,7 +25,7 @@ public class LoginScreen extends JFrame {
 
     public LoginScreen(String serverAddress, int serverPort) {
         super("Hansunggram");
-
+        
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
 
@@ -91,10 +102,27 @@ public class LoginScreen extends JFrame {
         p.add(b_login);
         return p;
     }
+    
+    private static String[] readServerInfo(String filePath) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String address = br.readLine();
+            String port = br.readLine();
+            return new String[] { address, port };
+        } catch (IOException e) {
+            System.err.println("server.txt 읽기 오류: " + e.getMessage());
+            return null;
+        }
+    }
 
     public static void main(String[] args) {
-        String serverAddress = "localhost";
-        int serverPort = 54321;
+    	String[] serverInfo = readServerInfo("server.txt");
+        if (serverInfo == null) {
+        	System.err.println("서버 정보 로드 실패");
+            return;
+        }
+
+        String serverAddress = serverInfo[0];
+        int serverPort = Integer.parseInt(serverInfo[1]);
         new LoginScreen(serverAddress, serverPort);
     }
 }
