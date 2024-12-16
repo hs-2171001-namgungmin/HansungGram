@@ -19,11 +19,9 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -279,23 +277,19 @@ public class MainScreen extends JFrame {
                 break;
 
             case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
-                if (inMsg.message != null && !inMsg.message.isEmpty()) {
-                    // 채팅방 목록을 중복 제거하며 저장
-                    Set<String> uniqueRooms = new HashSet<>(Arrays.asList(inMsg.message.split("::")));
-
-                    // 중복 제거된 목록을 다시 조합
-                    List<String> roomList = new ArrayList<>(uniqueRooms);
-
-                    // 필요시 정렬 (알파벳 순)
-                    roomList.sort(String::compareTo);
-
-                    // 채팅방 목록을 다시 조합
-                    chatRoomListStr = String.join("::", roomList);
-
-                    System.out.println("현재 채팅방 목록: " + chatRoomListStr);
-                }
+            	String[] rooms = inMsg.message.split("::");
+                //HashSet<String> uniqueRooms = new HashSet<>(Arrays.asList(rooms)); // 중복 제거
+            	List<String> roomList = new ArrayList<>();
+            	for (String room : rooms) {
+            	    // roomList에 아직 이 room이 없다면 추가한다.
+            	    if (!roomList.contains(room)) {
+            	        roomList.add(room);
+            	    }
+            	}
+                chatRoomListStr = String.join("::", roomList);
+                System.out.println("현재 채팅방 목록: " + chatRoomListStr);
+            	
                 break;
-
 
             default:
                 System.err.println("알 수 없는 메시지 모드: " + inMsg.mode);

@@ -43,10 +43,10 @@ public class ChatlistScreen extends JFrame {
 		// 처음 열릴 때 즉시 채팅방 목록 요청
 		requestChatRoomList();
 
-		// 1초마다 채팅방 목록 갱신
-	    timer = new Timer(1000, e -> updateChatRoomButtons(mainScreen.getChatRoomList()));
-	    timer.start();
-	    
+		// 1초마다 채팅방 목록 요청
+		timer = new Timer(1000, e -> requestChatRoomList());
+		timer.start();
+
 		// 창이 닫힐 때 타이머 종료
 		addWindowListener(new WindowAdapter() {
 			@Override
@@ -62,33 +62,33 @@ public class ChatlistScreen extends JFrame {
 	// 서버에 채팅방 목록 요청
 	private void requestChatRoomList() {
 	    try {
-	        // 서버에 채팅방 목록 요청 전송
 	        ChatMsg requestChatRoomsMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_CHAT_ROOMS);
 	        mainScreen.getOutputStream().writeObject(requestChatRoomsMsg);
 	        mainScreen.getOutputStream().flush();
-	    } catch (IOException e) {
-	        e.printStackTrace();
-	        JOptionPane.showMessageDialog(this, "서버와의 연결에 문제가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
-	    }
-	}
 
-	public void updateChatRoomButtons(String chatRoomList) {
-	    centerPanel.removeAll(); // 기존 버튼 제거
-	    String[] chatRooms = chatRoomList.split("::");
+	        // 서버에서 채팅방 목록 가져오기
+	        String chatRoomList = mainScreen.getChatRoomList();
+	        if (chatRoomList != null && !chatRoomList.isEmpty()) {
+	            String[] chatRooms = chatRoomList.split("::");
 
-	    for (String room : chatRooms) {
-	        String[] participants = room.split(", ");
-	        Arrays.sort(participants); // 알파벳 순 정렬
-	        String sortedRoomName = String.join(", ", participants);
+	            // 기존 centerPanel 초기화
+	            centerPanel.removeAll();
 
-	        // 현재 사용자(userId)가 포함된 채팅방만 표시
-	        if (sortedRoomName.contains(userId) && !isChatRoomButtonExists(sortedRoomName)) {
-	            addChatRoomButton(sortedRoomName);
+	            for (String room : chatRooms) {
+	                String[] participants = room.split(", ");
+	                Arrays.sort(participants); // 알파벳 순 정렬
+	                String sortedRoomName = String.join(", ", participants);
+
+	                if (sortedRoomName.contains(userId) && !isChatRoomButtonExists(sortedRoomName)) {
+	                    addChatRoomButton(sortedRoomName);
+	                }
+	            }
+	            centerPanel.revalidate();
+	            centerPanel.repaint();
 	        }
+	    } catch (IOException e) {
+	        JOptionPane.showMessageDialog(this, "채팅방 목록을 불러오는 중 문제가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
 	    }
-
-	    centerPanel.revalidate(); // 레이아웃 갱신
-	    centerPanel.repaint();    // 화면 다시 그리기
 	}
 
 	// 채팅방 버튼이 이미 존재하는지 확인
@@ -265,5 +265,18 @@ public class ChatlistScreen extends JFrame {
 		centerPanel.revalidate();
 		centerPanel.repaint(); // 화면 다시 그리기
 	}
+	@Override
+	public void setVisible(boolean visible) {
+	    super.setVisible(visible);
+	    if (visible) {
+	        if (!timer.isRunning()) {
+	            timer.start(); // 타이머가 멈춰있으면 다시 시작
+	        }
+	        requestChatRoomList(); // 화면이 열릴 때 즉시 목록 요청
+	    } else {
+	        timer.stop(); // 화면이 닫힐 때 타이머 중지
+	    }
+	}
+
 
 }
