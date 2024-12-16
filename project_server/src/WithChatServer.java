@@ -15,6 +15,8 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,11 +29,14 @@ import javax.swing.JTextArea;
 public class WithChatServer extends JFrame {
     private int port;
     private ServerSocket serverSocket = null;
+    private ConcurrentHashMap<String, Vector<ChatMsg>> chatMessages = new ConcurrentHashMap<>(); // 채팅 메시지 저장소
+    private static final String CHAT_MESSAGES_FILE = "saved_chat_messages.ser"; // 저장 파일 경로
+    private static final String CHAT_ROOMS_FILE = "saved_chat_rooms.ser"; // 채팅방 목록 저장 파일
 
     private Thread acceptThread = null;
     private Vector<ClientHandler> users = new Vector<ClientHandler>();
     private ConcurrentHashMap<String, ChatMsg> posts = new ConcurrentHashMap<>(); // 게시물 저장소
-
+    private Map<String, String> userDatabase = new HashMap<>();
     private JTextArea t_display;
     private JButton b_connect, b_disconnect, b_exit;
 
@@ -99,6 +104,8 @@ public class WithChatServer extends JFrame {
 
     private void disconnect() {
         savePosts(); // 서버 종료 시 게시물 저장
+        saveChatRooms();   // 채팅방 목록 저장
+        saveChatMessages(); // 채팅 메시지 저장
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
@@ -125,7 +132,11 @@ public class WithChatServer extends JFrame {
     }
 
     private void startServer() {
-        loadPosts(); // 서버 시작 시 게시물 로드
+        loadUserDatabase(); // 사용자 데이터베이스 로드
+        loadPosts(); // 게시물 데이터 로드
+        loadChatRooms();    // 채팅방 목록 로드
+        loadChatMessages(); // 채팅 메시지 로드
+
         try {
             serverSocket = new ServerSocket(port);
             printDisplay("서버가 시작되었습니다 : " + getLocalAddr());
@@ -141,6 +152,26 @@ public class WithChatServer extends JFrame {
             }
         } catch (SocketException e) {
             printDisplay("서버 소켓 종료");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadUserDatabase() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("user_data.ser"))) {
+            userDatabase = (Map<String, String>) ois.readObject();
+            System.out.println("사용자 데이터 로드 완료");
+        } catch (FileNotFoundException e) {
+            System.out.println("사용자 데이터 파일이 없습니다. 새로 생성합니다.");
+            userDatabase = new HashMap<>();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+    private void saveUserDatabase() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("user_data.ser"))) {
+            oos.writeObject(userDatabase);
+            System.out.println("사용자 데이터 저장 완료");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -165,6 +196,49 @@ public class WithChatServer extends JFrame {
             System.err.println("게시물 데이터 저장 중 오류 발생: " + e.getMessage());
         }
     }
+    private void saveChatMessages() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CHAT_MESSAGES_FILE))) {
+            oos.writeObject(chatMessages);
+            printDisplay("채팅 메시지 저장 완료");
+        } catch (IOException e) {
+            System.err.println("채팅 메시지 저장 중 오류 발생: " + e.getMessage());
+        }
+    }
+    private void saveChatMessage(ChatMsg msg) {
+        String chatRoomName = msg.message.split("::")[0]; // 채팅방 이름
+        chatMessages.computeIfAbsent(chatRoomName, k -> new Vector<>()).add(msg);
+        saveChatMessages(); // 서버에 저장
+        printDisplay("채팅 메시지 저장 완료: " + chatRoomName + " :: " + msg.userID);
+    }
+    private void saveChatRooms() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CHAT_ROOMS_FILE))) {
+            oos.writeObject(chatRooms);
+            printDisplay("채팅방 목록 저장 완료.");
+        } catch (IOException e) {
+            System.err.println("채팅방 목록 저장 중 오류 발생: " + e.getMessage());
+        }
+    }
+    private void loadChatRooms() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CHAT_ROOMS_FILE))) {
+            chatRooms = (Vector<String>) ois.readObject();
+            printDisplay("채팅방 목록 불러오기 완료: " + chatRooms.size() + "개의 채팅방");
+        } catch (FileNotFoundException e) {
+            printDisplay("저장된 채팅방 목록이 없습니다. 새로 시작합니다.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("채팅방 목록 불러오기 중 오류 발생: " + e.getMessage());
+        }
+    }
+
+    private void loadChatMessages() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CHAT_MESSAGES_FILE))) {
+            chatMessages = (ConcurrentHashMap<String, Vector<ChatMsg>>) ois.readObject();
+            printDisplay("채팅 메시지 로드 완료");
+        } catch (FileNotFoundException e) {
+            printDisplay("저장된 채팅 메시지가 없습니다.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("채팅 메시지 로드 중 오류 발생: " + e.getMessage());
+        }
+    }
 
     private class ClientHandler extends Thread {
         private Socket clientSocket;
@@ -176,6 +250,8 @@ public class WithChatServer extends JFrame {
 
             String chatRoomName = parts[0];
             String messageContent = parts[1];
+
+            chatMessages.computeIfAbsent(chatRoomName, k -> new Vector<>()).add(msg); // 메시지 저장
 
             for (ClientHandler client : users) {
                 if (chatRoomName.contains(client.uid)) {
@@ -189,7 +265,6 @@ public class WithChatServer extends JFrame {
             }
         }
 
-
         public ClientHandler(Socket clientSocket) {
             this.clientSocket = clientSocket;
         }
@@ -201,16 +276,51 @@ public class WithChatServer extends JFrame {
 
         private void receiveMessages(Socket cs) {
             try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(cs.getInputStream()))) {
-                out = new ObjectOutputStream(new BufferedOutputStream(cs.getOutputStream()));
-                ChatMsg msg;
+            	 out = new ObjectOutputStream(new BufferedOutputStream(cs.getOutputStream()));
+                 out.flush(); // 스트림 초기화
+                 ChatMsg msg;
 
                 while ((msg = (ChatMsg) in.readObject()) != null) {
-                    if (msg.mode == ChatMsg.MODE_LOGIN) {
-                        uid = msg.userID;
-                        printDisplay("새 참가자: " + uid);
-                        printDisplay("현재 참가자 수: " + users.size());
-                    } else if (msg.mode == ChatMsg.MODE_LOGOUT) {
-                        break;
+                	if (msg.mode == ChatMsg.MODE_LOGIN) {
+                        String[] credentials = msg.message.split("::");
+                        String username = credentials[0];
+                        String password = credentials[1];
+
+                        printDisplay("로그인 요청: " + username);
+
+                        if (!userDatabase.containsKey(username)) {
+                            userDatabase.put(username, password);
+                            saveUserDatabase();
+                            out.writeObject(new ChatMsg("server", ChatMsg.MODE_TX_STRING, "로그인 성공"));
+                            out.flush();
+                            uid = username;
+                            printDisplay("새 사용자 등록: " + username);
+                        } else if (!userDatabase.get(username).equals(password)) {
+                            printDisplay(username + " 비밀번호 틀림.");
+                            out.writeObject(new ChatMsg("server", ChatMsg.MODE_TX_STRING, "비밀번호가 틀렸습니다."));
+                            out.flush();
+
+                            users.remove(this); // 사용자 목록에서 제거
+                            cs.close(); // 소켓 종료
+                            printDisplay("클라이언트 소켓 종료: " + username);
+                            return;
+                        } else {
+                            out.writeObject(new ChatMsg("server", ChatMsg.MODE_TX_STRING, "로그인 성공"));
+                            out.flush();
+                            uid = username;
+                            printDisplay("로그인 성공: " + username);
+                            broadcasting(new ChatMsg("server", ChatMsg.MODE_TX_STRING, username + " 님이 로그인했습니다."));
+                        }
+                    }
+                	else if (msg.mode == ChatMsg.MODE_LOGOUT) {
+                	    printDisplay(uid + " 로그아웃 요청 수신.");
+                	    users.remove(this); // 사용자 목록에서 제거
+                	    broadcasting(new ChatMsg("server", ChatMsg.MODE_TX_STRING, uid + " 님이 로그아웃했습니다."));
+                	    printDisplay(uid + " 로그아웃 처리 완료.");
+                	    cs.close(); // 소켓 종료
+                	    break; // 루프 종료
+                	
+
                     } else if (msg.mode == ChatMsg.MODE_TX_POST) {
                         savePost(msg);
                         broadcasting(msg);
@@ -248,8 +358,15 @@ public class WithChatServer extends JFrame {
                     }
                     else if (msg.mode ==ChatMsg.MODE_TX_STRING) {
                         handleChatMessage(msg);
+                    }else if (msg.mode == ChatMsg.MODE_TX_IMAGE) {
+                        if (msg.message == null) {
+                            msg.message = "image::" + msg.userID; // 기본값 설정
+                        }
+                        saveChatMessage(msg); // 채팅 메시지 (이미지 포함) 저장
+                        broadcasting(msg);
+                    }else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_HISTORY) {
+                        sendChatHistory(msg.message); // 채팅방 이름(msg.message) 기반으로 채팅 기록 전송
                     }
-
                 }
 
                 users.remove(this);
@@ -276,7 +393,17 @@ public class WithChatServer extends JFrame {
                 System.err.println("유저 목록 전송 오류: " + e.getMessage());
             }
         }
-        
+        private void sendChatHistory(String chatRoomName) {
+            Vector<ChatMsg> history = chatMessages.getOrDefault(chatRoomName, new Vector<>());
+            for (ChatMsg chat : history) {
+                try {
+                    out.writeObject(chat);
+                    out.flush();
+                } catch (IOException e) {
+                    System.err.println("채팅 기록 전송 중 오류 발생: " + e.getMessage());
+                }
+            }
+        }
         private void sendChatRoomList(ObjectOutputStream out) {
             try {
                 String chatRoomList = String.join("::", chatRooms); //채팅방 목록 문자열 생성

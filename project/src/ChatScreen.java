@@ -31,7 +31,7 @@ public class ChatScreen extends JFrame {
         }
         this.out = out;
         buildGUI();
-
+        requestChatHistory(); // 채팅방 진입 시 채팅 기록 요청
         setSize(400, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -142,7 +142,18 @@ public class ChatScreen extends JFrame {
 
 		            emoButton.addActionListener(event -> {
 		                dialog.dispose();
-		                printDisplay(resizedIcon, true); // 이모티콘 출력
+		                try {
+		                	ChatMsg emojiMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::emoji", resizedIcon);
+		                	out.writeObject(emojiMsg);
+		                	out.flush();
+		                } catch (IOException ex) {
+		                	JOptionPane.showMessageDialog(
+		                		    null, 
+		                		    "이미지 전송 실패: " + ex.getMessage(),
+		                		    "오류",
+		                		    JOptionPane.ERROR_MESSAGE
+		                		);
+		                }
 		            });
 
 		            dialog.add(emoButton);
@@ -306,7 +317,7 @@ public class ChatScreen extends JFrame {
 
 		t_display.setCaretPosition(len);
 	}
-	private void printDisplay(ImageIcon icon, boolean isUser) {
+	protected void printDisplay(ImageIcon icon, boolean isUser) {
 	    JPanel emojiPanel = new JPanel(new FlowLayout(isUser ? FlowLayout.RIGHT : FlowLayout.LEFT)); // 사용자 메시지 오른쪽 정렬, 상대방은 왼쪽 정렬
 	    emojiPanel.setOpaque(false);
 
@@ -343,6 +354,15 @@ public class ChatScreen extends JFrame {
 	    return Objects.hash(chatRoomName);
 	}
 
+	private void requestChatHistory() {
+	    try {
+	        ChatMsg requestHistoryMsg = new ChatMsg(userId, ChatMsg.MODE_REQUEST_CHAT_HISTORY, chatRoomName);
+	        out.writeObject(requestHistoryMsg);
+	        out.flush();
+	    } catch (IOException e) {
+	        JOptionPane.showMessageDialog(this, "채팅 기록 요청 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+	    }
+	}
 
 
 	private void sendImage() {
@@ -355,12 +375,19 @@ public class ChatScreen extends JFrame {
 	        return;
 	    }
 
+	    // ImageIcon 객체 생성
 	    ImageIcon icon = new ImageIcon(filename);
-	    printDisplay(icon, true); // 사용자 메시지로 처리
+
+	    try {
+	        // 서버로 이미지 전송
+	    	ChatMsg imageMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::image", icon);
+	    	out.writeObject(imageMsg);
+	    	out.flush();
+	    } catch (IOException e) {
+	        JOptionPane.showMessageDialog(this, "이미지 전송 실패: " + e.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+	    }
 	    t_input.setText("");
 	}
-
-
 
     public static Color getRandomColor(String userId) {
         Random rand = new Random(userId.hashCode());
