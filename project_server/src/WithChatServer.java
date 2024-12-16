@@ -31,6 +31,7 @@ public class WithChatServer extends JFrame {
     private ServerSocket serverSocket = null;
     private ConcurrentHashMap<String, Vector<ChatMsg>> chatMessages = new ConcurrentHashMap<>(); // 채팅 메시지 저장소
     private static final String CHAT_MESSAGES_FILE = "saved_chat_messages.ser"; // 저장 파일 경로
+    private static final String CHAT_ROOMS_FILE = "saved_chat_rooms.ser"; // 채팅방 목록 저장 파일
 
     private Thread acceptThread = null;
     private Vector<ClientHandler> users = new Vector<ClientHandler>();
@@ -103,6 +104,7 @@ public class WithChatServer extends JFrame {
 
     private void disconnect() {
         savePosts(); // 서버 종료 시 게시물 저장
+        saveChatRooms();   // 채팅방 목록 저장
         saveChatMessages(); // 채팅 메시지 저장
         try {
             if (serverSocket != null && !serverSocket.isClosed()) {
@@ -132,6 +134,7 @@ public class WithChatServer extends JFrame {
     private void startServer() {
         loadUserDatabase(); // 사용자 데이터베이스 로드
         loadPosts(); // 게시물 데이터 로드
+        loadChatRooms();    // 채팅방 목록 로드
         loadChatMessages(); // 채팅 메시지 로드
 
         try {
@@ -206,6 +209,24 @@ public class WithChatServer extends JFrame {
         chatMessages.computeIfAbsent(chatRoomName, k -> new Vector<>()).add(msg);
         saveChatMessages(); // 서버에 저장
         printDisplay("채팅 메시지 저장 완료: " + chatRoomName + " :: " + msg.userID);
+    }
+    private void saveChatRooms() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CHAT_ROOMS_FILE))) {
+            oos.writeObject(chatRooms);
+            printDisplay("채팅방 목록 저장 완료.");
+        } catch (IOException e) {
+            System.err.println("채팅방 목록 저장 중 오류 발생: " + e.getMessage());
+        }
+    }
+    private void loadChatRooms() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(CHAT_ROOMS_FILE))) {
+            chatRooms = (Vector<String>) ois.readObject();
+            printDisplay("채팅방 목록 불러오기 완료: " + chatRooms.size() + "개의 채팅방");
+        } catch (FileNotFoundException e) {
+            printDisplay("저장된 채팅방 목록이 없습니다. 새로 시작합니다.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("채팅방 목록 불러오기 중 오류 발생: " + e.getMessage());
+        }
     }
 
     private void loadChatMessages() {
