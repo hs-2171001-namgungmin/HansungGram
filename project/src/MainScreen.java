@@ -229,7 +229,7 @@ public class MainScreen extends JFrame {
             case ChatMsg.MODE_TX_POST:      // 새로운 게시물 수신
                 addPost(inMsg.message, inMsg.image, inMsg.userID);
                 break;
-            case ChatMsg.MODE_TX_USER_LIST: // 유저 목록 저장
+            case ChatMsg.MODE_TX_USER_LIST: //유저 목록 저장
                 userListStr = inMsg.message;
                 System.out.println("현재 유저 목록: " + userListStr);
                 break;
@@ -288,13 +288,13 @@ public class MainScreen extends JFrame {
 
             case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
                 if (inMsg.message != null && !inMsg.message.isEmpty()) {
-                    // 채팅방 목록을 중복 제거하며 저장
+                    // 채팅방 목록 중복 제거하며 저장
                     Set<String> uniqueRooms = new HashSet<>(Arrays.asList(inMsg.message.split("::")));
 
                     // 중복 제거된 목록을 다시 조합
                     List<String> roomList = new ArrayList<>(uniqueRooms);
 
-                    // 필요시 정렬 (알파벳 순)
+                    // 정렬 (알파벳 순)
                     roomList.sort(String::compareTo);
 
                     // 채팅방 목록을 다시 조합
@@ -309,12 +309,12 @@ public class MainScreen extends JFrame {
                 });
                 break;
             case ChatMsg.MODE_TX_FILE:
-                String fileName = inMsg.message; // 파일 이름만 받음
+                String fileName = inMsg.message; //파일 이름만 받음
 
                 SwingUtilities.invokeLater(() -> {
                     // 이미 존재하는 ChatScreen 인스턴스를 가져옴
                     for (ChatScreen chatScreen : chatScreens.values()) {
-                        if (chatScreen.isVisible()) { // 현재 열려있는 채팅 화면에 파일 표시
+                        if (chatScreen.isVisible()) { //현재 열려있는 채팅 화면에 파일 표시
                             chatScreen.displayFileMessage(inMsg.userID, fileName);
                             break;
                         }
@@ -337,7 +337,8 @@ public class MainScreen extends JFrame {
         return chatRoomListStr;
     }
 
-    public void addPost(String content, ImageIcon image, String userId) {
+    // java Grapics2D를 사용한 도형 그리기 (자료참고)
+    public void addPost(String content, ImageIcon image, String userId) { 
         JPanel post = new JPanel(new BorderLayout());
         post.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         post.setBackground(Color.WHITE);
@@ -373,7 +374,7 @@ public class MainScreen extends JFrame {
         post.add(imageLabel, BorderLayout.CENTER);
         post.add(contentLabel, BorderLayout.SOUTH);
 
-        // **맨 위에 게시물 추가**
+        // 맨 위에 게시물 추가
         postPanel.add(post, 0); // index 0에 추가하여 최신 게시물이 맨 위에 표시됨
         postPanel.revalidate(); // 레이아웃 갱신
         postPanel.repaint();    // 화면 다시 그리기

@@ -200,6 +200,7 @@ public class WithChatServer extends JFrame {
 		}
 	}
 
+	// 채팅 메시지 저장 (자료 참고)
 	private void saveChatMessages() {
 		try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(CHAT_MESSAGES_FILE))) {
 			oos.writeObject(chatMessages);
@@ -395,7 +396,7 @@ public class WithChatServer extends JFrame {
 						if (msg.message == null) {
 							msg.message = "image::" + msg.userID; // 기본값 설정
 						}
-						saveChatMessage(msg); // 채팅 메시지 (이미지 포함) 저장
+						saveChatMessage(msg); // 채팅 메시지 (이미지 포함) 저장 
 						broadcasting(msg);
 					} else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_HISTORY) {
 						sendChatHistory(msg.message); // 채팅방 이름(msg.message) 기반으로 채팅 기록 전송

@@ -51,9 +51,9 @@ public class ChatScreen extends JFrame {
 	private DefaultStyledDocument document;
 	private String userId;
 	private String lastSender = ""; // 마지막 메시지 보낸 사용자
-	private ObjectOutputStream out; // 서버로 메시지 전송에 사용
+	private ObjectOutputStream out; 
 	private String chatRoomName;
-	private ObjectInputStream in; // 서버로부터 데이터를 읽는 입력 스트림
+	private ObjectInputStream in; 
 
 
 	public ChatScreen(String chatRoomName, String userId, ObjectOutputStream out, ObjectInputStream in) {
@@ -65,7 +65,7 @@ public class ChatScreen extends JFrame {
 			throw new IllegalArgumentException("ObjectOutputStream cannot be null");
 		}
 		this.out = out;
-		this.in = in; // ObjectInputStream 추가
+		this.in = in;
 		buildGUI();
 		requestChatHistory(); // 채팅방 진입 시 채팅 기록 요청
 		setSize(400, 600);
@@ -166,13 +166,13 @@ public class ChatScreen extends JFrame {
 		p.setBackground(Color.white);
 
 		t_input = new JTextField(28);
-		t_input.setBorder(null); // 테두리 삭제
+		t_input.setBorder(null); //테두리 삭제
 		t_input.setBackground(Color.LIGHT_GRAY);
 		// 메시지 전송 이벤트 추가
 		t_input.addActionListener(e -> {
 			String message = t_input.getText();
 			if (!message.isEmpty()) {
-				sendMessageToServer(message); // 서버에 메시지 전송
+				sendMessageToServer(message); //서버에 메시지 전송
 				t_input.setText("");
 			}
 		});
@@ -204,18 +204,21 @@ public class ChatScreen extends JFrame {
 					emoButton.setFocusPainted(false);
 					emoButton.setBorderPainted(false);
 
-					emoButton.addActionListener(event -> {
-						dialog.dispose();
-						try {
-							ChatMsg emojiMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::emoji",
-									resizedIcon);
-							out.writeObject(emojiMsg);
-							out.flush();
-						} catch (IOException ex) {
-							JOptionPane.showMessageDialog(null, "이미지 전송 실패: " + ex.getMessage(), "오류",
-									JOptionPane.ERROR_MESSAGE);
-						}
+					emoButton.addActionListener(new ActionListener() {
+					    @Override
+					    public void actionPerformed(ActionEvent event) {
+					        dialog.dispose();
+					        try {
+					            ChatMsg emojiMsg = new ChatMsg(userId, ChatMsg.MODE_TX_IMAGE, chatRoomName + "::emoji", resizedIcon);
+					            out.writeObject(emojiMsg);
+					            out.flush();
+					        } catch (IOException ex) {
+					            JOptionPane.showMessageDialog(null, "이미지 전송 실패: " + ex.getMessage(), "오류", 
+					                                          JOptionPane.ERROR_MESSAGE);
+					        }
+					    }
 					});
+
 
 					dialog.add(emoButton);
 				}
@@ -334,7 +337,7 @@ public class ChatScreen extends JFrame {
 	                File saveFile = chooser.getSelectedFile();
 	                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(saveFile))) {
 	                    byte[] buffer = new byte[8192];
-	                    long fileSize = in.readLong(); // 서버에서 파일 크기를 읽음
+	                    long fileSize = in.readLong(); //서버에서 파일 크기를 읽음
 	                    long totalBytesRead = 0;
 	                    int bytesRead;
 

@@ -10,9 +10,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -45,7 +49,12 @@ public class ChatlistScreen extends JFrame {
 		requestChatRoomList();
 
 		// 1초마다 채팅방 목록 요청
-		timer = new Timer(1000, e -> requestChatRoomList());
+		timer = new Timer(1000, new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent e) {
+		        requestChatRoomList();
+		    }
+		});
 		timer.start();
 
 		// 창이 닫힐 때 타이머 종료
@@ -73,15 +82,29 @@ public class ChatlistScreen extends JFrame {
 
 	        if (chatRoomList != null && !chatRoomList.isEmpty()) {
 	            // 채팅방 목록 정렬 및 필터링
-	            String[] chatRooms = Arrays.stream(chatRoomList.split("::"))
-	                    .map(room -> {
-	                        String[] participants = room.split(", ");
-	                        Arrays.sort(participants); // 알파벳 순 정렬
-	                        return String.join(", ", participants);
-	                    })
-	                    .filter(room -> room.contains(userId)) // 현재 사용자가 포함된 채팅방만
-	                    .distinct() // 중복 제거
-	                    .toArray(String[]::new);
+	        	String[] rooms = chatRoomList.split("::"); //채팅방 문자열을 "::"로 분리
+	            List<String> filteredRooms = new ArrayList<>(); //결과를 저장할 리스트
+	            Set<String> seenRooms = new HashSet<>(); //중복 체크를 위한 Set
+	            
+	            for (String room : rooms) {
+	                // 참가자를 쉼표로 나누고 알파벳 순으로 정렬
+	                String[] participants = room.split(", ");
+	                Arrays.sort(participants);
+	                
+	                // 정렬된 참가자 목록을 다시 문자열로 합침
+	                String sortedRoom = String.join(", ", participants);
+	                
+	                // 현재 사용자가 포함된 채팅방인지 확인
+	                if (sortedRoom.contains(userId)) {
+	                    // 중복된 채팅방은 추가하지 않음
+	                    if (seenRooms.add(sortedRoom)) { 
+	                        filteredRooms.add(sortedRoom);
+	                    }
+	                }
+	            }
+
+	            // 결과를 배열로 변환
+	            String[] chatRooms = filteredRooms.toArray(new String[0]);
 
 	            // UI 갱신
 	            SwingUtilities.invokeLater(() -> {
@@ -150,7 +173,7 @@ public class ChatlistScreen extends JFrame {
 					mainScreen.getOutputStream().writeObject(requestUserListMsg);
 					mainScreen.getOutputStream().flush();
 					// 서버 응답 대기 (MainScreen의 수신 스레드에서 userListStr이 업데이트될 때까지 잠시 대기)
-					Thread.sleep(500); // 잠시 대기하여 수신 스레드가 서버 응답을 처리할 시간을 확보
+					Thread.sleep(500); //잠시 대기하여 수신 스레드가 서버 응답을 처리할 시간을 확보
 
 					// 유저 목록 수신 후 다이얼로그 생성
 					String userListStr = mainScreen.getUserList();
@@ -159,16 +182,16 @@ public class ChatlistScreen extends JFrame {
 					}
 					// 다이얼로그에 유저 목록 표시 (체크박스로 표시)
 					JDialog dialog = new JDialog((Frame) null, "채팅방 생성", true);
-					dialog.setLayout(new BorderLayout()); // 전체 레이아웃을 BorderLayout으로 설정
+					dialog.setLayout(new BorderLayout()); //전체 레이아웃을 BorderLayout으로 설정
 					// 체크박스 리스트 패널
 					JPanel userListPanel = new JPanel();
-					userListPanel.setLayout(new BoxLayout(userListPanel, BoxLayout.Y_AXIS)); // 수직 정렬
+					userListPanel.setLayout(new BoxLayout(userListPanel, BoxLayout.Y_AXIS)); //수직 정렬
 					userListPanel.setBackground(Color.WHITE);
 					String[] users = userListStr.split(", ");
 					JCheckBox[] userCheckBoxes = new JCheckBox[users.length];
 					for (int i = 0; i < users.length; i++) {
 						if (!users[i].equals(userId)) { // 자기 자신 제외
-							JPanel checkBoxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT)); // 수평 정렬
+							JPanel checkBoxPanel = new JPanel(new FlowLayout(FlowLayout.LEFT)); //수평 정렬
 							checkBoxPanel.setBackground(Color.WHITE);
 							JCheckBox checkBox = new JCheckBox();
 							JLabel userLabel = new JLabel(users[i]);
@@ -186,10 +209,10 @@ public class ChatlistScreen extends JFrame {
 					createChatButton.setForeground(Color.WHITE);
 					createChatButton.setFocusPainted(false);
 					createChatButton.setBorderPainted(false);
-					createChatButton.setPreferredSize(new Dimension(0, 40)); // 버튼 높이 고정
+					createChatButton.setPreferredSize(new Dimension(0, 40)); //버튼 높이 고정
 					createChatButton.addActionListener(new ActionListener() {
 						public void actionPerformed(ActionEvent e) {
-							StringBuilder selectedUsers = new StringBuilder(userId); // 현재 사용자의 ID 추가
+							StringBuilder selectedUsers = new StringBuilder(userId); //현재 사용자의 ID 추가
 							for (int i = 0; i < userCheckBoxes.length; i++) {
 								if (userCheckBoxes[i] != null && userCheckBoxes[i].isSelected()) {
 									selectedUsers.append(", ").append(users[i]);
@@ -260,29 +283,33 @@ public class ChatlistScreen extends JFrame {
 		// 버튼 크기 설정 (centerPanel의 가로폭, centerPanel의 세로 1/7 크기)
 		chatRoomButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, centerPanel.getHeight() / 7));
 
-		chatRoomButton.addActionListener(e -> {
-			ChatScreen chatScreen = mainScreen.getChatScreen(chatRoomName);
-			if (chatScreen == null) {
-				chatScreen = new ChatScreen(chatRoomName, userId, mainScreen.getOutputStream(), mainScreen.getInputStream());
-				mainScreen.addChatScreen(chatRoomName, chatScreen);
-			}
-			chatScreen.setVisible(true);
+		chatRoomButton.addActionListener(new ActionListener() {
+		    @Override
+		    public void actionPerformed(ActionEvent e) {
+		        ChatScreen chatScreen = mainScreen.getChatScreen(chatRoomName);
+		        if (chatScreen == null) {
+		            chatScreen = new ChatScreen(chatRoomName, userId, mainScreen.getOutputStream(), mainScreen.getInputStream());
+		            mainScreen.addChatScreen(chatRoomName, chatScreen);
+		        }
+		        chatScreen.setVisible(true);
+		    }
 		});
 
+
 		centerPanel.add(chatRoomButton);
-		centerPanel.revalidate();
-		centerPanel.repaint(); // 화면 다시 그리기
+		centerPanel.revalidate(); //화면 갱신 (자료 참고)
+		centerPanel.repaint(); //화면 다시 그리기
 	}
 	@Override
 	public void setVisible(boolean visible) {
 	    super.setVisible(visible);
 	    if (visible) {
 	        if (!timer.isRunning()) {
-	            timer.start(); // 타이머가 멈춰있으면 다시 시작
+	            timer.start(); //타이머가 멈춰있으면 다시 시작
 	        }
-	        requestChatRoomList(); // 화면이 열릴 때 즉시 목록 요청
+	        requestChatRoomList(); //화면이 열릴 때 즉시 목록 요청
 	    } else {
-	        timer.stop(); // 화면이 닫힐 때 타이머 중지
+	        timer.stop(); //화면이 닫힐 때 타이머 중지
 	    }
 	}
 

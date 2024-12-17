@@ -84,7 +84,7 @@ public class LoginScreen extends JFrame {
 
 		b_login = new JButton("로그인");
 		b_login.setContentAreaFilled(false); //버튼 배경색 투명
-		b_login.setBorderPainted(false); //버튼 테두리 삭제
+		b_login.setBorderPainted(false); //버튼 테두리 삭제 (자료참고)
 		b_login.setBounds(180, 240, 80, 30);
 		
 		b_login.addActionListener(new ActionListener() {
