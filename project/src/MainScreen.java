@@ -46,11 +46,14 @@ public class MainScreen extends JFrame {
     private String userListStr = ""; // 유저 목록 저장
     private String chatRoomListStr = ""; // 채팅방 목록 저장
     private Map<String, ChatScreen> chatScreens = new HashMap<>(); // 채팅방 이름별 ChatScreen 저장
+    private ObjectInputStream in;
+
     
     public MainScreen(String userId, Socket socket, ObjectOutputStream out, ObjectInputStream in) {
         this.userId = userId;
         this.socket = socket;
         this.out = out;
+        this.in = in; // ObjectInputStream 저장
 
         setTitle("Hansunggram - 메인 화면");
         setSize(400, 600);
@@ -93,6 +96,9 @@ public class MainScreen extends JFrame {
     public ObjectOutputStream getOutputStream() {
         return out;
     }
+    public ObjectInputStream getInputStream() {
+        return in;
+    }
 
     private void startReceivingMessages(ObjectInputStream in) {
         Thread receiveThread = new Thread(() -> {
@@ -125,9 +131,11 @@ public class MainScreen extends JFrame {
 
         out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
         out.flush();
+        
+        in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
         // 수신 스레드 초기화
         receiveThread = new Thread(() -> {
-            try (ObjectInputStream in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()))) {
+            try {
                 while (!Thread.currentThread().isInterrupted()) {
                     ChatMsg inMsg = (ChatMsg) in.readObject();
                     if (inMsg != null) {
@@ -239,7 +247,7 @@ public class MainScreen extends JFrame {
                     SwingUtilities.invokeLater(() -> {
                         ChatScreen chatScreen = chatScreens.get(chatRoomName);
                         if (chatScreen == null) {
-                            chatScreen = new ChatScreen(chatRoomName, userId, out);
+                            chatScreen = new ChatScreen(chatRoomName, userId, out, in);
                             chatScreens.put(chatRoomName, chatScreen);
                         }
                         chatScreen.displayMessage(inMsg.userID, messageContent);
@@ -269,7 +277,7 @@ public class MainScreen extends JFrame {
 
                     // 채팅방이 없으면 새로 생성
                     if (chatScreen == null) {
-                        chatScreen = new ChatScreen(chatRoomName, userId, out);
+                        chatScreen = new ChatScreen(chatRoomName, userId, out, in);
                         chatScreens.put(chatRoomName, chatScreen);
                     }
 
@@ -300,6 +308,24 @@ public class MainScreen extends JFrame {
                     JOptionPane.showMessageDialog(this, inMsg.userID + "님이 채팅방을 나갔습니다.");
                 });
                 break;
+            case ChatMsg.MODE_TX_FILE:
+                String fileName = inMsg.message; // 파일 이름만 받음
+
+                SwingUtilities.invokeLater(() -> {
+                    // 이미 존재하는 ChatScreen 인스턴스를 가져옴
+                    for (ChatScreen chatScreen : chatScreens.values()) {
+                        if (chatScreen.isVisible()) { // 현재 열려있는 채팅 화면에 파일 표시
+                            chatScreen.displayFileMessage(inMsg.userID, fileName);
+                            break;
+                        }
+                    }
+                });
+                break;
+
+
+
+
+
 
 
             default:

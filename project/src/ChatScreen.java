@@ -1,27 +1,62 @@
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridLayout;
+import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Objects;
 import java.util.Random;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.*;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
 
 public class ChatScreen extends JFrame {
 	private JButton undo;
 	private JTextField t_input;
 	private JTextPane t_display;
-	private JButton b_image, b_emoji;
+	private JButton b_image, b_emoji, b_file;
 	private DefaultStyledDocument document;
 	private String userId;
 	private String lastSender = ""; // 마지막 메시지 보낸 사용자
 	private ObjectOutputStream out; // 서버로 메시지 전송에 사용
 	private String chatRoomName;
+	private ObjectInputStream in; // 서버로부터 데이터를 읽는 입력 스트림
 
-	public ChatScreen(String chatRoomName, String userId, ObjectOutputStream out) {
+
+	public ChatScreen(String chatRoomName, String userId, ObjectOutputStream out, ObjectInputStream in) {
 		super("Chat with " + chatRoomName);
 		this.userId = userId;
 		this.chatRoomName = chatRoomName;
@@ -30,6 +65,7 @@ public class ChatScreen extends JFrame {
 			throw new IllegalArgumentException("ObjectOutputStream cannot be null");
 		}
 		this.out = out;
+		this.in = in; // ObjectInputStream 추가
 		buildGUI();
 		requestChatHistory(); // 채팅방 진입 시 채팅 기록 요청
 		setSize(400, 600);
@@ -129,7 +165,7 @@ public class ChatScreen extends JFrame {
 		JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		p.setBackground(Color.white);
 
-		t_input = new JTextField(30);
+		t_input = new JTextField(28);
 		t_input.setBorder(null); // 테두리 삭제
 		t_input.setBackground(Color.LIGHT_GRAY);
 		// 메시지 전송 이벤트 추가
@@ -189,7 +225,7 @@ public class ChatScreen extends JFrame {
 			}
 		});
 
-		ImageIcon image = new ImageIcon("File plus.png");
+		ImageIcon image = new ImageIcon("photo.png");
 		Image img2 = image.getImage();
 		Image newImg2 = img2.getScaledInstance(28, 28, java.awt.Image.SCALE_SMOOTH);
 
@@ -222,12 +258,106 @@ public class ChatScreen extends JFrame {
 			}
 
 		});
+		
+		ImageIcon file = new ImageIcon("File plus.png");
+		Image img3 = file.getImage();
+		Image newImg3 = img3.getScaledInstance(28, 28, java.awt.Image.SCALE_SMOOTH);
+		
+		b_file = new JButton(new ImageIcon(newImg3));
+		b_file.setPreferredSize(new Dimension(28, 28));
+		b_file.setBackground(Color.white);
+		b_file.setFocusPainted(false);
+		b_file.setBorderPainted(false);
+		b_file.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fileChooser = new JFileChooser();
+		        int returnVal = fileChooser.showOpenDialog(ChatScreen.this);
+		        if (returnVal == JFileChooser.APPROVE_OPTION) {
+		            File selectedFile = fileChooser.getSelectedFile();
+		            long fileSize = selectedFile.length();
+		            if (fileSize > 10 * 1024 * 1024) { // 10MB 제한
+		                JOptionPane.showMessageDialog(ChatScreen.this, "파일 크기가 너무 큽니다. (10MB 이하만 전송 가능)", "오류", JOptionPane.ERROR_MESSAGE);
+		                return;
+		            }
+		            try {
+		                // 서버에 파일 전송 메타 데이터 전송
+		                ChatMsg fileMsg = new ChatMsg(userId, ChatMsg.MODE_TX_FILE, selectedFile.getName(), fileSize);
+		                out.writeObject(fileMsg);
+		                out.flush();
+
+		                // 파일 데이터를 서버로 스트리밍
+		                byte[] buffer = new byte[8192];
+		                try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(selectedFile))) {
+		                    int bytesRead;
+		                    while ((bytesRead = bis.read(buffer)) != -1) {
+		                        out.write(buffer, 0, bytesRead);
+		                    }
+		                }
+		                out.flush();
+		                JOptionPane.showMessageDialog(ChatScreen.this, "파일 전송 성공!");
+		            } catch (IOException ex) {
+		                JOptionPane.showMessageDialog(ChatScreen.this, "파일 전송 중 오류 발생: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+		            }
+		        }
+				
+			}
+			
+		});
+		
 		p.add(t_input);
 		p.add(b_emoji);
 		p.add(b_image);
-
+		p.add(b_file);
 		return p;
 	}
+	
+	public void displayFileMessage(String senderId, String fileName) {
+	    boolean isUser = senderId.equals(userId);
+
+	    JButton fileButton = new JButton(fileName);
+	    fileButton.setBackground(Color.WHITE);
+	    fileButton.setFocusPainted(false);
+	    fileButton.setBorderPainted(true);
+
+	    fileButton.addActionListener(e -> {
+	        JFileChooser chooser = new JFileChooser();
+	        chooser.setSelectedFile(new File(fileName));
+	        int option = chooser.showSaveDialog(ChatScreen.this);
+	        if (option == JFileChooser.APPROVE_OPTION) {
+	            try {
+	                // 서버에 파일 요청 메시지 전송
+	                out.writeObject(new ChatMsg(userId, ChatMsg.MODE_REQUEST_FILE, fileName));
+	                out.flush();
+
+	                File saveFile = chooser.getSelectedFile();
+	                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(saveFile))) {
+	                    byte[] buffer = new byte[8192];
+	                    long fileSize = in.readLong(); // 서버에서 파일 크기를 읽음
+	                    long totalBytesRead = 0;
+	                    int bytesRead;
+
+	                    // 파일 크기만큼 읽기
+	                    while (totalBytesRead < fileSize && 
+	                          (bytesRead = in.read(buffer, 0, (int)Math.min(buffer.length, fileSize - totalBytesRead))) != -1) {
+	                        bos.write(buffer, 0, bytesRead);
+	                        totalBytesRead += bytesRead;
+	                    }
+	                    bos.flush();
+	                    JOptionPane.showMessageDialog(this, "파일 다운로드 완료!");
+	                }
+	            } catch (IOException ex) {
+	                JOptionPane.showMessageDialog(this, "파일 다운로드 실패: " + ex.getMessage(), "오류", JOptionPane.ERROR_MESSAGE);
+	            }
+	        }
+	    });
+
+	    displayMessageWithProfile(senderId, fileButton, isUser);
+	}
+
+
+
 
 	// 서버로 메시지 전송 메서드
 	private void sendMessageToServer(String message) {

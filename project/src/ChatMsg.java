@@ -7,6 +7,7 @@ public class ChatMsg implements Serializable {
     public final static int MODE_LOGIN = 0x1;
     public final static int MODE_LOGOUT = 0x2;
     public final static int MODE_TX_STRING = 0x10;
+    public final static int MODE_TX_FILE = 0x20;
     public final static int MODE_TX_IMAGE = 0x40;
     public final static int MODE_TX_POST = 0x50; // 게시물 전송 모드 추가
     public final static int MODE_REQUEST_POSTS = 0x60; // 게시물 요청
@@ -15,8 +16,9 @@ public class ChatMsg implements Serializable {
     public static final int MODE_REQUEST_CHAT_ROOMS = 0x90; // 채팅방 목록 요청
     public final static int MODE_REQUEST_CHAT_HISTORY = 0xA0; // 채팅 기록 요청
     public final static int MODE_LEAVE_CHAT_ROOM = 0xB0; // 채팅방 나가기
+    public static final int MODE_REQUEST_FILE = 0x200; // 파일 요청 모드
 
-    
+
     String userID;
     int mode;
     String message;
@@ -58,4 +60,10 @@ public class ChatMsg implements Serializable {
     public ChatMsg(String userID, int code, String filename, long size) {
         this(userID, code, filename, null, size);
     }
+    
+    public ChatMsg(String userID, int code, String filename, long size, String message) {
+        this(userID, code, filename, null, size);
+        this.message = message; // 파일 상태 메시지 추가
+    }
+
 }

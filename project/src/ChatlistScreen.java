@@ -263,7 +263,7 @@ public class ChatlistScreen extends JFrame {
 		chatRoomButton.addActionListener(e -> {
 			ChatScreen chatScreen = mainScreen.getChatScreen(chatRoomName);
 			if (chatScreen == null) {
-				chatScreen = new ChatScreen(chatRoomName, userId, mainScreen.getOutputStream());
+				chatScreen = new ChatScreen(chatRoomName, userId, mainScreen.getOutputStream(), mainScreen.getInputStream());
 				mainScreen.addChatScreen(chatRoomName, chatScreen);
 			}
 			chatScreen.setVisible(true);
