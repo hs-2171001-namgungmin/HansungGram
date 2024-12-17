@@ -283,6 +283,8 @@ public class WithChatServer extends JFrame {
 			String chatRoomName = parts[0];
 			String messageContent = parts[1];
 
+			printDisplay("["+msg.userID+"]"+msg.message);
+			
 			chatMessages.computeIfAbsent(chatRoomName, k -> new Vector<>()).add(msg); // 메시지 저장
 
 			for (ClientHandler client : users) {
@@ -362,6 +364,7 @@ public class WithChatServer extends JFrame {
 						sendPostsToClient(out);
 					} else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
 						sendUserList(); // 현재 유저 목록 반환
+						printDisplay("[" + msg.userID + "]" + msg.message);
 					} else if (msg.mode == ChatMsg.MODE_CREATE_CHAT_ROOM) {
 						// 채팅방 이름 알파벳 순으로 정렬
 						String[] usersInRoom = msg.message.split(", ");
