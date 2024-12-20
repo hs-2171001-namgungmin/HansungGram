@@ -49,21 +49,21 @@ public class ChatlistScreen extends JFrame {
 		requestChatRoomList();
 
 		// 1초마다 채팅방 목록 요청
-		timer = new Timer(1000, new ActionListener() {
-		    @Override
-		    public void actionPerformed(ActionEvent e) {
-		        requestChatRoomList();
-		    }
-		});
-		timer.start();
-
-		// 창이 닫힐 때 타이머 종료
-		addWindowListener(new WindowAdapter() {
-			@Override
-			public void windowClosing(WindowEvent e) {
-				timer.stop();
-			}
-		});
+//		timer = new Timer(1000, new ActionListener() {
+//		    @Override
+//		    public void actionPerformed(ActionEvent e) {
+//		        requestChatRoomList();
+//		    }
+//		});
+//		timer.start();
+//
+//		// 창이 닫힐 때 타이머 종료
+//		addWindowListener(new WindowAdapter() {
+//			@Override
+//			public void windowClosing(WindowEvent e) {
+//				timer.stop();
+//			}
+//		});
 		setSize(400, 600);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		setVisible(true);
@@ -266,6 +266,37 @@ public class ChatlistScreen extends JFrame {
 		return centerPanel;
 	}
 
+	public void updateChatRoomList(String chatRoomList) {
+        if (chatRoomList != null && !chatRoomList.isEmpty()) {
+            String[] rooms = chatRoomList.split("::");
+
+            List<String> filteredRooms = new ArrayList<>();
+            Set<String> seenRooms = new HashSet<>();
+
+            for (String room : rooms) {
+                String[] participants = room.split(", ");
+                Arrays.sort(participants);
+                String sortedRoom = String.join(", ", participants);
+
+                if (sortedRoom.contains(userId)) {
+                    if (seenRooms.add(sortedRoom)) {
+                        filteredRooms.add(sortedRoom);
+                    }
+                }
+            }
+
+            String[] chatRooms = filteredRooms.toArray(new String[0]);
+            SwingUtilities.invokeLater(() -> {
+                centerPanel.removeAll();
+                for (String room : chatRooms) {
+                    addChatRoomButton(room);
+                }
+                centerPanel.revalidate();
+                centerPanel.repaint();
+            });
+        }
+    }
+	
 	// 새로운 채팅방 버튼 추가
 	private void addChatRoomButton(String chatRoomName) {
 		if (isChatRoomButtonExists(chatRoomName))
@@ -300,18 +331,18 @@ public class ChatlistScreen extends JFrame {
 		centerPanel.revalidate(); //화면 갱신 (자료 참고)
 		centerPanel.repaint(); //화면 다시 그리기
 	}
-	@Override
-	public void setVisible(boolean visible) {
-	    super.setVisible(visible);
-	    if (visible) {
-	        if (!timer.isRunning()) {
-	            timer.start(); //타이머가 멈춰있으면 다시 시작
-	        }
-	        requestChatRoomList(); //화면이 열릴 때 즉시 목록 요청
-	    } else {
-	        timer.stop(); //화면이 닫힐 때 타이머 중지
-	    }
-	}
+//	@Override
+//	public void setVisible(boolean visible) {
+//	    super.setVisible(visible);
+//	    if (visible) {
+//	        if (!timer.isRunning()) {
+//	            timer.start(); //타이머가 멈춰있으면 다시 시작
+//	        }
+//	        requestChatRoomList(); //화면이 열릴 때 즉시 목록 요청
+//	    } else {
+//	        timer.stop(); //화면이 닫힐 때 타이머 중지
+//	    }
+//	}
 
 
 }

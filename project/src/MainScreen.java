@@ -3,6 +3,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
@@ -16,14 +17,10 @@ import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -315,18 +312,18 @@ public class MainScreen extends JFrame {
 
             case ChatMsg.MODE_REQUEST_CHAT_ROOMS:
                 if (inMsg.message != null && !inMsg.message.isEmpty()) {
-                    // 채팅방 목록 중복 제거하며 저장
-                    Set<String> uniqueRooms = new HashSet<>(Arrays.asList(inMsg.message.split("::")));
-
-                    // 중복 제거된 목록을 다시 조합
-                    List<String> roomList = new ArrayList<>(uniqueRooms);
-
-                    // 정렬 (알파벳 순)
-                    roomList.sort(String::compareTo);
-
-                    // 채팅방 목록을 다시 조합
-                    chatRoomListStr = String.join("::", roomList);
-
+                	chatRoomListStr = inMsg.message;
+                	// ChatlistScreen에 업데이트 요청
+                    SwingUtilities.invokeLater(() -> {
+                        // 열려있는 모든 Frame 확인
+                        Frame[] frames = JFrame.getFrames();
+                        for (Frame frame : frames) {
+                            if (frame instanceof ChatlistScreen && frame.isVisible()) {
+                                // updateChatRoomList() 호출
+                                ((ChatlistScreen) frame).updateChatRoomList(inMsg.message);
+                            }
+                        }
+                    });
                     System.out.println("현재 채팅방 목록: " + chatRoomListStr);
                 }
                 break;

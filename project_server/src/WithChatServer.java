@@ -271,6 +271,7 @@ public class WithChatServer extends JFrame {
 					// 남은 사용자가 없으면 채팅 기록 삭제
 					chatMessages.remove(chatRoomName);
 					printDisplay("채팅방 삭제됨: " + chatRoomName);
+					broadcastUpdatedChatRoomList();
 				}
 			}
 		}
@@ -417,6 +418,7 @@ public class WithChatServer extends JFrame {
 								}
 							}
 						}
+						broadcastUpdatedChatRoomList();
 
 					} else if (msg.mode == ChatMsg.MODE_REQUEST_CHAT_ROOMS) {
 						sendChatRoomList(out); // 현재 채팅방 목록 전송
