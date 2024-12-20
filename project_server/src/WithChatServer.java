@@ -349,15 +349,24 @@ public class WithChatServer extends JFrame {
 							printDisplay("로그인 성공: " + username);
 							broadcasting(new ChatMsg("server", ChatMsg.MODE_TX_STRING, username + " 님이 로그인했습니다."));
 						}
-					} else if (msg.mode == ChatMsg.MODE_LOGOUT) {
-						printDisplay(uid + " 로그아웃 요청 수신.");
-						users.remove(this); // 사용자 목록에서 제거
-						broadcasting(new ChatMsg("server", ChatMsg.MODE_TX_STRING, uid + " 님이 로그아웃했습니다."));
-						printDisplay(uid + " 로그아웃 처리 완료.");
-						cs.close(); // 소켓 종료
-						break; // 루프 종료
+					 } else if (msg.mode == ChatMsg.MODE_LOGOUT) {
+					    printDisplay(uid + " 로그아웃 요청 수신.");
+					    users.remove(this); // 사용자 목록에서 제거
 
-					} else if (msg.mode == ChatMsg.MODE_TX_POST) {
+					    // 브로드캐스트 메시지 전송
+					    if (!users.isEmpty()) {
+					        broadcasting(new ChatMsg("server", ChatMsg.MODE_LOGOUT, uid + " 님이 로그아웃했습니다."));
+					    }
+
+					    printDisplay(uid + " 로그아웃 처리 완료.");
+					    try {
+					        cs.close(); // 클라이언트 소켓 종료
+					        printDisplay("클라이언트 소켓 종료: " + uid);
+					    } catch (IOException e) {
+					        System.err.println("소켓 종료 중 오류 발생: " + e.getMessage());
+					    }
+					    break; // 루프 종료
+					}else if (msg.mode == ChatMsg.MODE_TX_POST) {
 						savePost(msg);
 						broadcasting(msg);
 					} else if (msg.mode == ChatMsg.MODE_REQUEST_POSTS) {
@@ -567,15 +576,27 @@ public class WithChatServer extends JFrame {
 		}
 
 		private void broadcasting(ChatMsg msg) {
-			for (ClientHandler c : users) {
-				try {
-					c.out.writeObject(msg);
-					c.out.flush();
-				} catch (IOException e) {
-					System.err.println("브로드캐스트 중 오류 발생: " + e.getMessage());
-				}
-			}
+		    if (users.isEmpty()) {
+		        printDisplay("브로드캐스트 대상 없음: " + msg.message);
+		        return;
+		    }
+
+		    Vector<ClientHandler> disconnectedClients = new Vector<>();
+		    for (ClientHandler c : users) {
+		        try {
+		            c.out.writeObject(msg);
+		            c.out.flush();
+		        } catch (IOException e) {
+		            printDisplay("브로드캐스트 중 오류 발생: " + e.getMessage());
+		            disconnectedClients.add(c); // 오류가 발생한 클라이언트 추적
+		        }
+		    }
+
+		    // 연결 문제가 발생한 클라이언트를 사용자 목록에서 제거
+		    users.removeAll(disconnectedClients);
+		    disconnectedClients.forEach(c -> printDisplay("연결 종료된 클라이언트 제거: " + c.uid));
 		}
+
 	}
 
 	public static void main(String[] args) {

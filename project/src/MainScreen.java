@@ -105,16 +105,34 @@ public class MainScreen extends JFrame {
             try {
                 while (true) {
                     ChatMsg inMsg = (ChatMsg) in.readObject();
-                    if (inMsg != null) {
-                        processIncomingMessage(inMsg);
+                    if (inMsg == null) {
+                        System.out.println("서버로부터 null 메시지 수신. 연결 종료 처리.");
+                        break;
                     }
+                    processIncomingMessage(inMsg);
                 }
-            } catch (IOException | ClassNotFoundException e) {
-                System.err.println("메시지 수신 중 오류 발생: " + e.getMessage());
+            } catch (IOException e) {
+                if (!e.getMessage().contains("Socket closed")) {
+                    System.err.println("메시지 수신 중 오류 발생: " + e.getMessage());
+                } else {
+                    System.out.println("서버와의 연결이 종료되었습니다.");
+                }
+            } catch (ClassNotFoundException e) {
+                System.err.println("수신 데이터 타입 오류: " + e.getMessage());
+            } finally {
+                try {
+                    System.out.println("서버와의 연결이 종료되었습니다.");
+                    in.close();
+                    socket.close();
+                    System.exit(0); // 클라이언트 종료
+                } catch (IOException ex) {
+                    System.err.println("스트림 종료 중 오류 발생: " + ex.getMessage());
+                }
             }
         });
         receiveThread.start();
     }
+
 
     public void addChatScreen(String chatRoomName, ChatScreen chatScreen) {
         chatScreens.put(chatRoomName, chatScreen);
@@ -225,6 +243,15 @@ public class MainScreen extends JFrame {
 
     private void processIncomingMessage(ChatMsg inMsg) {
         switch (inMsg.mode) {
+        case ChatMsg.MODE_LOGOUT:
+            SwingUtilities.invokeLater(() -> {
+                for (ChatScreen chatScreen : chatScreens.values()) {
+                    if (chatScreen.isVisible()) {
+                        chatScreen.displayMessage("Server", inMsg.message); // 채팅 화면에 메시지 추가
+                    }
+                }
+            });
+            break;
             case ChatMsg.MODE_REQUEST_POSTS: // 서버로부터 게시물 리스트 수신
             case ChatMsg.MODE_TX_POST:      // 새로운 게시물 수신
                 addPost(inMsg.message, inMsg.image, inMsg.userID);
