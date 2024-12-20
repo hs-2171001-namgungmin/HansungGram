@@ -274,30 +274,50 @@ public class WithChatServer extends JFrame {
 				}
 			}
 		}
-
 		private void handleChatMessage(ChatMsg msg) {
-			String[] parts = msg.message.split("::", 2);
-			if (parts.length < 2)
-				return;
+		    // 메시지가 null이거나 비어 있는 경우 처리 중단
+		    if (msg == null || msg.message == null || msg.message.trim().isEmpty()) {
+		        System.err.println("유효하지 않은 메시지 수신");
+		        return;
+		    }
 
-			String chatRoomName = parts[0];
-			String messageContent = parts[1];
+		    // 메시지 내용 파싱
+		    String[] parts = msg.message.split("::", 3); // 세 부분으로 분리
+		    if (parts.length < 3) {
+		        System.err.println("잘못된 메시지 형식: " + msg.message);
+		        return;
+		    }
 
-			printDisplay("["+msg.userID+"]"+msg.message);
-			
-			chatMessages.computeIfAbsent(chatRoomName, k -> new Vector<>()).add(msg); // 메시지 저장
+		    String chatRoomName = parts[0].trim(); // 첫 번째 부분: 채팅방 이름
+		    String senderID = parts[1].trim(); // 두 번째 부분: 발신자 ID
+		    String messageContent = parts[2].trim(); // 세 번째 부분: 메시지 내용
 
-			for (ClientHandler client : users) {
-				if (chatRoomName.contains(client.uid)) {
-					try {
-						client.out.writeObject(
-								new ChatMsg(msg.userID, ChatMsg.MODE_TX_STRING, chatRoomName + "::" + messageContent));
-						client.out.flush();
-					} catch (IOException e) {
-						System.err.println("메시지 전송 오류: " + e.getMessage());
-					}
-				}
-			}
+		    // 디버깅 로그로 파싱 결과 확인
+		    System.out.println("채팅방 이름: " + chatRoomName);
+		    System.out.println("발신자 ID: " + senderID);
+		    System.out.println("메시지 내용: " + messageContent);
+
+		    // 채팅 메시지 로그 출력 (messageContent만)
+		    if (msg.mode == ChatMsg.MODE_TX_STRING) {
+		        printDisplay("[" + senderID + "] " + messageContent); // senderID와 messageContent 출력
+		    }
+
+		    // 메시지를 저장
+		    chatMessages.computeIfAbsent(chatRoomName, k -> new Vector<>()).add(msg);
+
+		    // 채팅방 사용자들에게 메시지 전송
+		    for (ClientHandler client : users) {
+		        if (chatRoomName.contains(client.uid)) {
+		            try {
+		                client.out.writeObject(
+		                    new ChatMsg(senderID, ChatMsg.MODE_TX_STRING, chatRoomName + "::" + messageContent)
+		                );
+		                client.out.flush();
+		            } catch (IOException e) {
+		                System.err.println("메시지 전송 오류: " + e.getMessage());
+		            }
+		        }
+		    }
 		}
 
 		public ClientHandler(Socket clientSocket) {
@@ -373,7 +393,6 @@ public class WithChatServer extends JFrame {
 						sendPostsToClient(out);
 					} else if (msg.mode == ChatMsg.MODE_TX_USER_LIST) {
 						sendUserList(); // 현재 유저 목록 반환
-						printDisplay("[" + msg.userID + "]" + msg.message);
 					} else if (msg.mode == ChatMsg.MODE_CREATE_CHAT_ROOM) {
 						// 채팅방 이름 알파벳 순으로 정렬
 						String[] usersInRoom = msg.message.split(", ");
